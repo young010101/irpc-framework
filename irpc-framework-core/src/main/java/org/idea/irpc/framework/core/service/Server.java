@@ -7,16 +7,34 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.string.StringDecoder;
-import io.netty.handler.codec.string.StringEncoder;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.idea.irpc.framework.core.common.RpcEncoder;
+import org.idea.irpc.framework.core.common.RpcDecoder;
+import org.idea.irpc.framework.core.common.cache.CommonServerCache;
+import org.idea.irpc.framework.impl.DataServerImpl;
 
 /**
  * @author cyang
  */
+@Setter
 @Slf4j
 public class Server {
+    private ServerConfig serverConfig;
+
     public static void main(String[] args) throws InterruptedException {
+        Server server = new Server();
+        ServerConfig serverConfig = new ServerConfig();
+        serverConfig.setHost("127.0.0.1");
+        serverConfig.setPort(9999);
+        server.setServerConfig(serverConfig);
+        server.registerService(new DataServerImpl());
+        server.startApplication();
+
+        log.info("server start success");
+    }
+
+    private void startApplication() throws InterruptedException {
         // deal with accept
         EventLoopGroup bossGroup = new NioEventLoopGroup();
         // deal with read & write
@@ -35,12 +53,25 @@ public class Server {
             @Override
             protected void initChannel(SocketChannel ch) {
                 log.info("init channel");
-                ch.pipeline().addLast(new StringEncoder())
-                        .addLast(new StringDecoder())
+                ch.pipeline().addLast(new RpcEncoder())
+                        .addLast(new RpcDecoder())
                         .addLast(new ServerHandler());
             }
         });
-        bootstrap.bind(9999).sync();
-        log.info("server start success");
+
+        bootstrap.bind(serverConfig.getPort()).sync();
+    }
+
+    private void registerService(Object serviceBean) {
+        if (serviceBean.getClass().getInterfaces().length == 0) {
+            throw new RuntimeException("Must register service interface");
+        }
+        Class<?>[] interfaces = serviceBean.getClass().getInterfaces();
+        if (interfaces.length > 1) {
+            throw new RuntimeException("Must register only one interface");
+        }
+        Class<?> serviceClass = interfaces[0];
+        log.info("register service:{}", serviceClass.getName());
+        CommonServerCache.PROVIDED_SERVICE.put(serviceClass.getName(), serviceBean);
     }
 }
