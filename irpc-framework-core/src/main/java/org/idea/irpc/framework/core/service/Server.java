@@ -44,11 +44,19 @@ public class Server {
         // set master thread group and slave
         bootstrap.group(bossGroup, workerGroup);
         bootstrap.channel(NioServerSocketChannel.class);
-        // queue length
+        
+        // ServerSocketChannel 配置
+        // SO_BACKLOG: 服务器端连接队列大小，当服务器处理请求速度较慢时，可以适当调大
         bootstrap.option(ChannelOption.SO_BACKLOG, 1024);
+        
+        // SocketChannel 配置
+        // SO_RCVBUF: 接收缓冲区大小，影响接收数据的性能
         bootstrap.childOption(ChannelOption.SO_RCVBUF, 1024 * 16);
+        // SO_SNDBUF: 发送缓冲区大小，影响发送数据的性能
         bootstrap.childOption(ChannelOption.SO_SNDBUF, 1024 * 16);
+        // SO_KEEPALIVE: 启用 TCP keepalive，用于检测连接是否存活
         bootstrap.childOption(ChannelOption.SO_KEEPALIVE, true);
+        
         bootstrap.childHandler(new ChannelInitializer<SocketChannel>() {
             @Override
             protected void initChannel(SocketChannel ch) {
