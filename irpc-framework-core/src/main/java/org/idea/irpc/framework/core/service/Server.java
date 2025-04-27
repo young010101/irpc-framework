@@ -15,24 +15,19 @@ import org.idea.irpc.framework.core.common.cache.CommonServerCache;
 import org.idea.irpc.framework.impl.DataServerImpl;
 
 /**
- * RPC 框架的服务器端启动类
- * 
+ * RPC 框架的服务器端启动类。
+ * <p>
+ * 主要功能包括：
+ * <ul>
+ *     <li>初始化并启动 Netty 服务器</li>
+ *     <li>配置网络参数和线程模型</li>
+ *     <li>注册服务实现类</li>
+ *     <li>处理客户端连接和请求</li>
+ * </ul>
+ *
  * @author cyang
- * @date 2024-03-xx
- * @course RPC Framework Lesson 1
- * @description 
- * 1. 初始化并启动 Netty 服务器
- * 2. 配置网络参数和线程模型
- * 3. 注册服务实现类
- * 4. 处理客户端连接和请求
- * 
- * @progress
- * - [x] 基础服务器搭建
- * - [x] Netty 配置
- * - [x] 服务注册
- * - [ ] 服务发现
- * - [ ] 负载均衡
- * - [ ] 容错机制
+ * @since 2025-03
+ * @version 1.0
  */
 @Setter
 @Slf4j
@@ -61,7 +56,7 @@ public class Server {
          */
         EventLoopGroup bossGroup = new NioEventLoopGroup();
 
-        /**
+        /*
          * workerGroup: 从 Reactor，负责处理 I/O 操作
          * - 线程数通常设置为 CPU 核心数的 2 倍
          * - 负责处理已建立连接的读写操作
@@ -69,7 +64,7 @@ public class Server {
          */
         // 默认线程数等于 CPU 核心数
         EventLoopGroup workerGroup = new NioEventLoopGroup();
-        
+
         // 或者显式设置线程数
         // EventLoopGroup workerGroup = new NioEventLoopGroup(16);  // 固定线程数
         // EventLoopGroup workerGroup = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() * 2);  // CPU核心数*2
