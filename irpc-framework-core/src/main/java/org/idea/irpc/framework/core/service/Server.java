@@ -13,6 +13,7 @@ import org.idea.irpc.framework.core.common.RpcEncoder;
 import org.idea.irpc.framework.core.common.RpcDecoder;
 import org.idea.irpc.framework.core.common.cache.CommonServerCache;
 import org.idea.irpc.framework.impl.DataServerImpl;
+import org.idea.irpc.framework.impl.HelloServiceImpl;
 
 /**
  * RPC 框架的服务器端启动类。
@@ -46,6 +47,7 @@ public class Server {
 
         // 注册服务实现类
         server.registerService(new DataServerImpl());
+        server.registerService(new HelloServiceImpl());
 
         // 启动服务器
         server.startApplication();

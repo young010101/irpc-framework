@@ -54,3 +54,10 @@ flowchart LR
     style Provider03 fill:#43aa8b,stroke:#333,stroke-width:2px
 
 ```
+
+## 代理层实现
+
+开启客户端开启新的线程发送数据包给服务器, 解耦
+
+代理对象会检查是否得到 RpcInvocation 对象, 并返回 RpcInvocation 的 response object.
+
