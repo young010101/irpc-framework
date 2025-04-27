@@ -15,7 +15,24 @@ import org.idea.irpc.framework.core.common.cache.CommonServerCache;
 import org.idea.irpc.framework.impl.DataServerImpl;
 
 /**
+ * RPC 框架的服务器端启动类
+ * 
  * @author cyang
+ * @date 2024-03-xx
+ * @course RPC Framework Lesson 1
+ * @description 
+ * 1. 初始化并启动 Netty 服务器
+ * 2. 配置网络参数和线程模型
+ * 3. 注册服务实现类
+ * 4. 处理客户端连接和请求
+ * 
+ * @progress
+ * - [x] 基础服务器搭建
+ * - [x] Netty 配置
+ * - [x] 服务注册
+ * - [ ] 服务发现
+ * - [ ] 负载均衡
+ * - [ ] 容错机制
  */
 @Setter
 @Slf4j
@@ -35,14 +52,34 @@ public class Server {
     }
 
     private void startApplication() throws InterruptedException {
-        // deal with accept
+        /*
+          Netty 采用主从 Reactor 多线程模型
+          bossGroup: 主 Reactor，负责处理连接请求
+          - 通常只需要一个线程，因为连接建立是相对简单的操作
+          - 负责监听和接受客户端的连接请求
+          - 将接受的连接注册到 workerGroup 中
+         */
         EventLoopGroup bossGroup = new NioEventLoopGroup();
-        // deal with read & write
+
+        /**
+         * workerGroup: 从 Reactor，负责处理 I/O 操作
+         * - 线程数通常设置为 CPU 核心数的 2 倍
+         * - 负责处理已建立连接的读写操作
+         * - 处理实际的业务逻辑
+         */
+        // 默认线程数等于 CPU 核心数
         EventLoopGroup workerGroup = new NioEventLoopGroup();
+        
+        // 或者显式设置线程数
+        // EventLoopGroup workerGroup = new NioEventLoopGroup(16);  // 固定线程数
+        // EventLoopGroup workerGroup = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() * 2);  // CPU核心数*2
         ServerBootstrap bootstrap = new ServerBootstrap();
 
-        // set master thread group and slave
+        // 设置主从线程组
         bootstrap.group(bossGroup, workerGroup);
+        // 指定服务器使用的通道类型为 NIO 非阻塞模式
+        // 使用 NioServerSocketChannel 可以支持高并发连接
+        // 相比传统的阻塞式 IO，性能更好，资源利用率更高
         bootstrap.channel(NioServerSocketChannel.class);
         
         // ServerSocketChannel 配置
@@ -56,11 +93,17 @@ public class Server {
         bootstrap.childOption(ChannelOption.SO_SNDBUF, 1024 * 16);
         // SO_KEEPALIVE: 启用 TCP keepalive，用于检测连接是否存活
         bootstrap.childOption(ChannelOption.SO_KEEPALIVE, true);
+        // TCP_NODELAY: 禁用 Nagle 算法，减少延迟
+        bootstrap.childOption(ChannelOption.TCP_NODELAY, true);
         
         bootstrap.childHandler(new ChannelInitializer<SocketChannel>() {
             @Override
             protected void initChannel(SocketChannel ch) {
                 log.info("init channel");
+                // 配置处理器链
+                // 1. 编码器：将对象转换为字节
+                // 2. 解码器：将字节转换为对象
+                // 3. 业务处理器：处理具体的业务逻辑
                 ch.pipeline().addLast(new RpcEncoder())
                         .addLast(new RpcDecoder())
                         .addLast(new ServerHandler());
@@ -68,6 +111,10 @@ public class Server {
         });
 
         bootstrap.bind(serverConfig.getPort()).sync();
+
+        // 获取 workerGroup 的线程数
+//        int threadCount = workerGroup.executorCount();
+//        System.out.println("Worker group thread count: " + threadCount);
     }
 
     private void registerService(Object serviceBean) {
