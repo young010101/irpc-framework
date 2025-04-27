@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.idea</groupId>
-        <artifactId>irpc-framwork</artifactId>
+        <artifactId>irpc-framework</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 

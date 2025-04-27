@@ -10,6 +10,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>irpc-framework-interface</module>
+        <module>irpc-framework-core</module>
     </modules>
 
     <properties>

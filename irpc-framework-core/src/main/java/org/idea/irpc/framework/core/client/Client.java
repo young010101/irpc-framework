@@ -56,9 +56,9 @@ public class Client {
             throw new RuntimeException(e);
         }
         log.info(clazz.getSimpleName());
-        invocation.setClassName(clazz.getName());
-        invocation.setMethod(method.getName());
-        invocation.setParams(new String[]{"cyan"});
+        invocation.setTargetServiceName(clazz.getName());
+        invocation.setTargetMethod(method.getName());
+        invocation.setArgs(new String[]{"cyan"});
 
         String json = JSON.toJSONString(invocation);
 

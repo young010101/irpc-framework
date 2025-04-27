@@ -35,15 +35,22 @@ public class Server {
     private ServerConfig serverConfig;
 
     public static void main(String[] args) throws InterruptedException {
-        Server server = new Server();
+        // 配置服务器地址和端口
         ServerConfig serverConfig = new ServerConfig();
         serverConfig.setHost("127.0.0.1");
         serverConfig.setPort(9999);
+
+        // 创建并配置服务器实例
+        Server server = new Server();        
         server.setServerConfig(serverConfig);
+
+        // 注册服务实现类
         server.registerService(new DataServerImpl());
+
+        // 启动服务器
         server.startApplication();
 
-        log.info("server start success");
+        log.info("Server started successfully on {}:{}", serverConfig.getHost(), serverConfig.getPort());
     }
 
     private void startApplication() throws InterruptedException {
@@ -112,16 +119,25 @@ public class Server {
 //        System.out.println("Worker group thread count: " + threadCount);
     }
 
+    /**
+     * 注册服务实现类到缓存映射中。
+     * 
+     * @param serviceBean 要注册的服务实现类实例
+     * @throws RuntimeException 如果服务类没有实现接口或实现了多个接口
+     */
     private void registerService(Object serviceBean) {
+        // 检查服务类是否实现了接口
         if (serviceBean.getClass().getInterfaces().length == 0) {
             throw new RuntimeException("Must register service interface");
         }
         Class<?>[] interfaces = serviceBean.getClass().getInterfaces();
+        // 检查服务类是否只实现了一个接口
         if (interfaces.length > 1) {
             throw new RuntimeException("Must register only one interface");
         }
         Class<?> serviceClass = interfaces[0];
         log.info("register service:{}", serviceClass.getName());
-        CommonServerCache.PROVIDED_SERVICE.put(serviceClass.getName(), serviceBean);
+        // 将服务接口的全限定名作为key，服务实现类实例作为value存入缓存
+        CommonServerCache.PROVIDED_CLASSES_MAP.put(serviceClass.getName(), serviceBean);
     }
 }
