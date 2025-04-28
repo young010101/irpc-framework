@@ -1,6 +1,7 @@
 package org.idea.irpc.framework.core.service;
 
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
@@ -124,10 +125,17 @@ public class Server {
             }
         });
 
-        // todo: 先暴露服务?
-        // 如果sync异常会如何?会异常么?
         batchExportUrl();
-        bootstrap.bind(serverConfig.getPort()).sync();
+
+        ChannelFuture future = bootstrap.bind(serverConfig.getPort()).sync();
+        future.addListener(f -> {
+            if (f.isSuccess()) {
+                log.info("Server bound to port {} successfully", serverConfig.getPort());
+            } else {
+                log.error("Failed to bind port {}", serverConfig.getPort(), f.cause());
+            }
+        });
+
 
         // 获取 workerGroup 的线程数
 //        int threadCount = workerGroup.executorCount();
