@@ -13,4 +13,8 @@ import java.util.Set;
 public class CommonServerCache {
     public static final Set<URL> PROVIDER_URL_SET = new HashSet<>();
     public static final Map<String, Object> PROVIDED_CLASSES_MAP = new HashMap<>();
+    /**
+     * 服务的URL
+     */
+    public static final Set<URL> PROVIDED_URL_SET = new HashSet<>();
 }

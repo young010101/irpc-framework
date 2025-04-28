@@ -9,11 +9,18 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.idea.irpc.framework.core.common.RpcEncoder;
 import org.idea.irpc.framework.core.common.RpcDecoder;
-import org.idea.irpc.framework.core.common.cache.CommonServerCache;
+import org.idea.irpc.framework.core.common.RpcEncoder;
+import org.idea.irpc.framework.core.registy.RegistryService;
+import org.idea.irpc.framework.core.registy.URL;
+import org.idea.irpc.framework.core.registy.zookeeper.ZookeeperRegister;
 import org.idea.irpc.framework.impl.DataServerImpl;
 import org.idea.irpc.framework.impl.HelloServiceImpl;
+
+import static org.idea.irpc.framework.core.common.cache.CommonServerCache.PROVIDED_CLASSES_MAP;
+import static org.idea.irpc.framework.core.common.cache.CommonServerCache.PROVIDED_URL_SET;
+import static org.idea.irpc.framework.core.common.constants.RpcConstants.HOST;
+import static org.idea.irpc.framework.core.common.constants.RpcConstants.PORT;
 
 /**
  * RPC 框架的服务器端启动类。
@@ -27,27 +34,29 @@ import org.idea.irpc.framework.impl.HelloServiceImpl;
  * </ul>
  *
  * @author cyang
- * @since 2025-03
  * @version 1.0
+ * @since 2025-03
  */
 @Setter
 @Slf4j
 public class Server {
     private ServerConfig serverConfig;
+    private RegistryService registryService;
 
     public static void main(String[] args) throws InterruptedException {
         // 配置服务器地址和端口
         ServerConfig serverConfig = new ServerConfig();
         serverConfig.setHost("127.0.0.1");
         serverConfig.setPort(9999);
+        serverConfig.setApplicationName("cyan-irpc");
 
         // 创建并配置服务器实例
-        Server server = new Server();        
+        Server server = new Server();
         server.setServerConfig(serverConfig);
 
-        // 注册服务实现类
-        server.registerService(new DataServerImpl());
-        server.registerService(new HelloServiceImpl());
+        // 注册并暴露服务实现类
+        server.exportService(new HelloServiceImpl());
+        server.exportService(new DataServerImpl());
 
         // 启动服务器
         server.startApplication();
@@ -85,11 +94,11 @@ public class Server {
         // 使用 NioServerSocketChannel 可以支持高并发连接
         // 相比传统的阻塞式 IO，性能更好，资源利用率更高
         bootstrap.channel(NioServerSocketChannel.class);
-        
+
         // ServerSocketChannel 配置
         // SO_BACKLOG: 服务器端连接队列大小，当服务器处理请求速度较慢时，可以适当调大
         bootstrap.option(ChannelOption.SO_BACKLOG, 1024);
-        
+
         // SocketChannel 配置
         // SO_RCVBUF: 接收缓冲区大小，影响接收数据的性能
         bootstrap.childOption(ChannelOption.SO_RCVBUF, 1024 * 16);
@@ -98,8 +107,9 @@ public class Server {
         // SO_KEEPALIVE: 启用 TCP keepalive，用于检测连接是否存活
         bootstrap.childOption(ChannelOption.SO_KEEPALIVE, true);
         // TCP_NODELAY: 禁用 Nagle 算法，减少延迟
+        // Nagel 算法会将多个小包合成打包再发送,但是我的rpc一般包不会太小,以后可以估算下, 毕竟一个字符就一个字节了
         bootstrap.childOption(ChannelOption.TCP_NODELAY, true);
-        
+
         bootstrap.childHandler(new ChannelInitializer<SocketChannel>() {
             @Override
             protected void initChannel(SocketChannel ch) {
@@ -114,6 +124,9 @@ public class Server {
             }
         });
 
+        // todo: 先暴露服务?
+        // 如果sync异常会如何?会异常么?
+        batchExportUrl();
         bootstrap.bind(serverConfig.getPort()).sync();
 
         // 获取 workerGroup 的线程数
@@ -123,7 +136,10 @@ public class Server {
 
     /**
      * 注册服务实现类到缓存映射中。
-     * 
+     * <p>
+     * 后续需要暴露服务到zookeeper等注册中心中.
+     * </p>
+     *
      * @param serviceBean 要注册的服务实现类实例
      * @throws RuntimeException 如果服务类没有实现接口或实现了多个接口
      */
@@ -138,8 +154,44 @@ public class Server {
             throw new RuntimeException("Must register only one interface");
         }
         Class<?> serviceClass = interfaces[0];
-        log.info("register service:{}", serviceClass.getName());
+        log.info("register service: {}", serviceClass.getName());
         // 将服务接口的全限定名作为key，服务实现类实例作为value存入缓存
-        CommonServerCache.PROVIDED_CLASSES_MAP.put(serviceClass.getName(), serviceBean);
+        PROVIDED_CLASSES_MAP.put(serviceClass.getName(), serviceBean);
+    }
+
+    private void exportService(Object serviceBean) {
+        registerService(serviceBean);
+
+        URL url = new URL();
+        url.setServiceName(serviceBean.getClass().getInterfaces()[0].getName());
+        url.setApplicationName(serverConfig.getApplicationName());
+        // 这里要获取真实的ip, 但是本地电脑的ip只能在局域网中使用, 校园网甚至更少
+        url.addParameter(HOST, serverConfig.getHost());
+        url.addParameter(PORT, String.valueOf(serverConfig.getPort()));
+
+        // todo: 配置应该移到配置文件
+        if (registryService == null) {
+            registryService = new ZookeeperRegister("127.0.0.1:2181");
+        }
+
+        PROVIDED_URL_SET.add(url);
+    }
+
+    public void batchExportUrl() {
+        // todo
+        // 更好的写法（推荐）：
+        // 如果必须等数据，可以考虑用更优雅的方法，比如：
+        // - 用 Future + 线程同步（比如 CompletableFuture）
+        // - 加一个状态标志位，检测是否准备完成
+        // - 使用 CountDownLatch 等并发工具来同步
+        // gpt 说不用单独起一个线程, 可以优化register 如果注册很慢
+//        new Thread(() -> {
+//            for (URL url : PROVIDED_URL_SET) {
+//                registryService.register(url);
+//            }
+//        }).start();
+            for (URL url : PROVIDED_URL_SET) {
+                registryService.register(url);
+            }
     }
 }

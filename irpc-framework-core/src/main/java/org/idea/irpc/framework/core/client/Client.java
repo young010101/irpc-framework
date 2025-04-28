@@ -14,16 +14,12 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.idea.irpc.framework.core.common.RpcDecoder;
 import org.idea.irpc.framework.core.common.RpcEncoder;
-import org.idea.irpc.framework.core.common.RpcInvocation;
 import org.idea.irpc.framework.core.common.RpcProtocol;
 import org.idea.irpc.framework.core.common.cache.CommonClientCache;
 import org.idea.irpc.framework.core.common.config.client.ClientConfig;
 import org.idea.irpc.framework.core.proxy.jdk.JDKProxyFactory;
 import org.idea.irpc.framework.interfaces.DataService;
 import org.idea.irpc.framework.interfaces.HelloService;
-
-import java.lang.reflect.Method;
-import java.util.UUID;
 
 /**
  * @author cyang
@@ -138,8 +134,10 @@ public class Client {
         RpcReference rpcReference = client.startApplication();
 
         HelloService helloService = rpcReference.getProxy(HelloService.class);
+        DataService dataService = rpcReference.getProxy(DataService.class);
         for (int i = 0; i < 10; i++) {
             log.info("helloService: {}", helloService.sayHello("irpc"));
+            log.info("dataService: {}", dataService.hello("irpc"));
         }
     }
 }

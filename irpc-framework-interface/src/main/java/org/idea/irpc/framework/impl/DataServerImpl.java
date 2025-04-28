@@ -10,7 +10,7 @@ import org.idea.irpc.framework.interfaces.DataService;
 public class DataServerImpl  implements DataService {
     @Override
     public String hello(String test) {
-        log.info("hello service");
-        return "world" + test;
+        log.info("hello data service");
+        return "[dataServer]: hello, " + test;
     }
 }

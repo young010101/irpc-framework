@@ -44,8 +44,10 @@ public class IRpcListenerLoader {
     }
 
     public static void sendEvent(IRpcEvent iRpcEvent) {
+        // sendEvent前应该先 init loader, 注册一个 Listener
         if(CommonUtils.isEmptyList(iRpcListenerList)){
-            return;
+            // 或许可以用更加好的异常
+            throw new RuntimeException("init error");
         }
         for (IRpcListener<?> iRpcListener : iRpcListenerList) {
             Class<?> type = getInterfaceT(iRpcListener);

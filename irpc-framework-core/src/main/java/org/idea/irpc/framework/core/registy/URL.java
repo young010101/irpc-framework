@@ -1,7 +1,6 @@
 package org.idea.irpc.framework.core.registy;
 
 import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
 import org.idea.irpc.framework.core.registy.zookeeper.ProviderNodeInfo;
 
 import java.nio.charset.StandardCharsets;
@@ -9,8 +8,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * @Author linhao
- * @Date created in 3:48 下午 2021/12/11
+ * lesson3 提到的第二个类
+ * 
+ * @author Cheng Yang
+ * @author linhao
+ * @since created in 3:48 下午 2021/12/11
  */
 @Data
 public class URL {
@@ -27,41 +29,18 @@ public class URL {
 
     /**
      * 这里面可以自定义不限进行扩展
-     * 分组
-     * 权重
-     * 服务提供者的地址
-     * 服务提供者的端口
+     * <ul>
+     * <li>分组</li>
+     * <li>权重</li>
+     * <li>服务提供者的地址</li>
+     * <li>服务提供者的端口</li>
+     * </ul>
      */
     private Map<String, String> parameters = new HashMap<>();
 
     public void addParameter(String key, String value) {
         this.parameters.putIfAbsent(key, value);
     }
-
-    public String getApplicationName() {
-        return applicationName;
-    }
-
-    public void setApplicationName(String applicationName) {
-        this.applicationName = applicationName;
-    }
-
-    public String getServiceName() {
-        return serviceName;
-    }
-
-    public void setServiceName(String serviceName) {
-        this.serviceName = serviceName;
-    }
-
-    public Map<String, String> getParameters() {
-        return parameters;
-    }
-
-    public void setParameters(Map<String, String> parameters) {
-        this.parameters = parameters;
-    }
-
 
     /**
      * 将URL转换为写入zk的provider节点下的一段字符串
@@ -72,7 +51,8 @@ public class URL {
     public static String buildProviderUrlStr(URL url) {
         String host = url.getParameters().get("host");
         String port = url.getParameters().get("port");
-        return new String((url.getApplicationName() + ";" + url.getServiceName() + ";" + host + ":" + port + ";" + System.currentTimeMillis()).getBytes(), StandardCharsets.UTF_8);
+        return new String((url.getApplicationName() + ";" + url.getServiceName() + ";" + host + ":" + port + ";"
+                + System.currentTimeMillis()).getBytes(), StandardCharsets.UTF_8);
     }
 
     /**
@@ -83,9 +63,11 @@ public class URL {
      */
     public static String buildConsumerUrlStr(URL url) {
         String host = url.getParameters().get("host");
-        return new String((url.getApplicationName() + ";" + url.getServiceName() + ";" + host + ";" + System.currentTimeMillis()).getBytes(), StandardCharsets.UTF_8);
+        return new String(
+                (url.getApplicationName() + ";" + url.getServiceName() + ";" + host + ";" + System.currentTimeMillis())
+                        .getBytes(),
+                StandardCharsets.UTF_8);
     }
-
 
     /**
      * 将某个节点下的信息转换为一个Provider节点对象
@@ -115,7 +97,7 @@ public class URL {
         System.out.println(providerNodeStr);
         String consumerNodeStr = buildConsumerUrlStr(url);
         System.out.println(consumerNodeStr);
-//        ProviderNodeInfo providerNodeInfo = buildURLFromUrlStr(providerNodeStr);
-//        System.out.println(providerNodeInfo);
+        // ProviderNodeInfo providerNodeInfo = buildURLFromUrlStr(providerNodeStr);
+        // System.out.println(providerNodeInfo);
     }
 }

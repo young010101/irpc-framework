@@ -7,6 +7,7 @@ import lombok.Data;
  */
 @Data
 public class ServerConfig {
-    String host;
-    int port;
+    private String host;
+    private int port;
+    private String applicationName;
 }

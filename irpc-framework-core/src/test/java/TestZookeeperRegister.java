@@ -26,13 +26,16 @@ public class TestZookeeperRegister {
     public void testGetFromURL() {
         URL url = new URL();
         url.setApplicationName("test-application");
-        url.setServiceName("test-service");
+        url.setServiceName(DataService.class.getName());
         url.addParameter("host", "localhost");
         url.addParameter("port", "2181");
-        log.info("{}", url.toString());
+        log.info("{}", url);
+
         ZookeeperRegister zookeeperRegister = new ZookeeperRegister("localhost:2181");
+        // 创建temporary Node, 保证服务下线, zookeeper的节点就会消失, 但是不会马上消失
+        log.info("{}", zookeeperRegister.getProviderIps(url.getServiceName()));
         zookeeperRegister.register(url);
-        log.info("{}", zookeeperRegister.getProviderIps(DataService.class.getName()));
+        log.info("{}", zookeeperRegister.getProviderIps(url.getServiceName()));
     }
 
     @Test

@@ -6,8 +6,6 @@ import io.netty.channel.ChannelFuture;
 import org.idea.irpc.framework.core.common.ChannelFutureWrapper;
 import org.idea.irpc.framework.core.common.utils.CommonUtils;
 
-import javax.xml.stream.events.DTD;
-import java.net.UnknownServiceException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -51,13 +49,11 @@ public class ConnectionHandler {
         }
         String[] providerAddress = providerIp.split(":");
         String ip = providerAddress[0];
-        Integer port = Integer.parseInt(providerAddress[1]);
+        int port = Integer.parseInt(providerAddress[1]);
         //到底这个channelFuture里面是什么
         ChannelFuture channelFuture = bootstrap.connect(ip, port).sync();
-        ChannelFutureWrapper channelFutureWrapper = new ChannelFutureWrapper();
+        ChannelFutureWrapper channelFutureWrapper = new ChannelFutureWrapper(ip, port);
         channelFutureWrapper.setChannelFuture(channelFuture);
-        channelFutureWrapper.setHost(ip);
-        channelFutureWrapper.setPort(port);
         SERVER_ADDRESS.add(providerIp);
         List<ChannelFutureWrapper> channelFutureWrappers = CONNECT_MAP.get(providerServiceName);
         if (CommonUtils.isEmptyList(channelFutureWrappers)) {
@@ -75,8 +71,7 @@ public class ConnectionHandler {
      * @throws InterruptedException
      */
     public static ChannelFuture createChannelFuture(String ip,Integer port) throws InterruptedException {
-        ChannelFuture channelFuture = bootstrap.connect(ip, port).sync();
-        return channelFuture;
+        return bootstrap.connect(ip, port).sync();
     }
 
     /**
