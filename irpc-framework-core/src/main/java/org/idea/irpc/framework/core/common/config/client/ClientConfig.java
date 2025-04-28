@@ -7,6 +7,14 @@ import lombok.Data;
  */
 @Data
 public class ClientConfig {
-    String serverAddress;
-    int serverPort;
+    /**
+     * 我想要订阅的服务器的地址, 现阶段要从注册中心获得
+     */
+    private String serverAddress;
+    private int serverPort;
+    /**
+     * zookeeper 等注册中心的地址
+     */
+    private String registerAddress;
+    private String applicationName;
 }

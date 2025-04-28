@@ -1,5 +1,6 @@
 package org.idea.irpc.framework.core.registy.zookeeper;
 
+import lombok.NonNull;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.idea.irpc.framework.core.common.event.IRpcEvent;
@@ -30,7 +31,11 @@ public class ZookeeperRegister extends AbstractRegister implements RegistryServi
         return ROOT + "/" + url.getServiceName() + "/consumer/" + url.getApplicationName() + ":" + url.getParameters().get("host")+":";
     }
 
-    public ZookeeperRegister(String address) {
+    /**
+     * 踩坑了, client的 register address忘记配置
+     * @param address nonnull
+     */
+    public ZookeeperRegister(@NonNull String address) {
         this.zkClient = new CuratorZookeeperClient(address);
     }
 

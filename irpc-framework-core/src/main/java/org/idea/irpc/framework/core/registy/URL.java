@@ -75,7 +75,7 @@ public class URL {
      * @param providerNodeStr
      * @return
      */
-    public static ProviderNodeInfo buildURLFromUrlStr(String providerNodeStr) {
+    public static ProviderNodeInfo buildUrlFromUrlStr(String providerNodeStr) {
         String[] items = providerNodeStr.split("/");
         ProviderNodeInfo providerNodeInfo = new ProviderNodeInfo();
         providerNodeInfo.setServiceName(items[2]);
