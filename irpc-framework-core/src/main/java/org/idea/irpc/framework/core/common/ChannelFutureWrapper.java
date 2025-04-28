@@ -5,7 +5,9 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 
 /**
+ * netty {@code ChannelFuture}的包装类
  * @author cyang
+ * @see ChannelFuture
  */
 @Data
 @RequiredArgsConstructor

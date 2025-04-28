@@ -43,7 +43,7 @@ public class Client {
 
     private Bootstrap bootstrap = new Bootstrap();
 
-    public RpcReference initClientApplication() throws InterruptedException {
+    public RpcReference initClientApplication() {
 
         EventLoopGroup group = new NioEventLoopGroup();
 
@@ -141,8 +141,9 @@ public class Client {
     /**
      * 启动一个独立线程，异步将待发送队列中的消息通过指定的 ChannelFuture 发送到服务器。
      * 该线程会持续从发送队列中取出消息并发送，直到应用关闭。
-     *
-     * @param future 用于与服务器通信的 ChannelFuture，代表已建立的连接
+     * <p>
+     * 用于与服务器通信的 ChannelFuture 从本地缓存 CONNECT_MAP获取，代表已建立的连接
+     * </p>
      */
     private void startSendThread() {
         new Thread(new AsyncSentJob()).start();
@@ -154,7 +155,8 @@ public class Client {
         clientConfig.setServerAddress("127.0.0.1");
         clientConfig.setServerPort(9999);
         clientConfig.setRegisterAddress("127.0.0.1:2181");
-        clientConfig.setApplicationName("cyan-irpc-client");
+        // 名字不重要,完全没有影响,作用应该是为了连接使用
+        clientConfig.setApplicationName("cyan-client");
 
         Client client = new Client();
         client.setClientConfig(clientConfig);
@@ -176,8 +178,8 @@ public class Client {
         HelloService helloService = rpcReference.getProxy(HelloService.class);
         DataService dataService = rpcReference.getProxy(DataService.class);
         for (int i = 0; i < 10; i++) {
-            log.info("helloService: {}", helloService.sayHello("irpc"));
-            log.info("dataService: {}", dataService.hello("irpc"));
+            log.info("helloService: {}", helloService.sayHello("client"));
+            log.info("dataService: {}", dataService.hello("client"));
         }
     }
 }
