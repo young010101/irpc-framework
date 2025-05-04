@@ -16,12 +16,15 @@ import java.util.concurrent.Executors;
  */
 public class IRpcListenerLoader {
 
-    private static List<IRpcListener> iRpcListenerList = new ArrayList<>();
+    /**
+     * 如果 LISTENERS不为空, 线程池
+     */
+    private static final List<IRpcListener> LISTENERS = new ArrayList<>();
 
-    private static ExecutorService eventThreadPool = Executors.newFixedThreadPool(2);
+    private static final ExecutorService EVENT_THREAD_POOL = Executors.newFixedThreadPool(2);
 
     public static void registerListener(IRpcListener iRpcListener) {
-        iRpcListenerList.add(iRpcListener);
+        LISTENERS.add(iRpcListener);
     }
 
     public void init() {
@@ -43,23 +46,25 @@ public class IRpcListenerLoader {
         return null;
     }
 
+    /**
+     * 使用线程池异步执行 Listener的callBack
+     * @param iRpcEvent
+     */
     public static void sendEvent(IRpcEvent iRpcEvent) {
         // sendEvent前应该先 init loader, 注册一个 Listener
-        if(CommonUtils.isEmptyList(iRpcListenerList)){
+        if(CommonUtils.isEmptyList(LISTENERS)){
             // 或许可以用更加好的异常
             throw new RuntimeException("init error");
         }
-        for (IRpcListener<?> iRpcListener : iRpcListenerList) {
+        for (IRpcListener<?> iRpcListener : LISTENERS) {
             Class<?> type = getInterfaceT(iRpcListener);
+            assert type != null;
             if(type.equals(iRpcEvent.getClass())){
-                eventThreadPool.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            iRpcListener.callBack(iRpcEvent.getData());
-                        }catch (Exception e){
-                            e.printStackTrace();
-                        }
+                EVENT_THREAD_POOL.execute(() -> {
+                    try {
+                        iRpcListener.callback(iRpcEvent.getData());
+                    }catch (Exception e){
+                        e.printStackTrace();
                     }
                 });
             }

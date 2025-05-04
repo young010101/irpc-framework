@@ -12,14 +12,12 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.idea.irpc.framework.core.common.RpcDecoder;
 import org.idea.irpc.framework.core.common.RpcEncoder;
-import org.idea.irpc.framework.core.registy.RegistryService;
 import org.idea.irpc.framework.core.registy.URL;
 import org.idea.irpc.framework.core.registy.zookeeper.ZookeeperRegister;
 import org.idea.irpc.framework.impl.DataServerImpl;
 import org.idea.irpc.framework.impl.HelloServiceImpl;
 
-import static org.idea.irpc.framework.core.common.cache.CommonServerCache.PROVIDED_CLASSES_MAP;
-import static org.idea.irpc.framework.core.common.cache.CommonServerCache.PROVIDED_URL_SET;
+import static org.idea.irpc.framework.core.common.cache.CommonServerCache.*;
 import static org.idea.irpc.framework.core.common.constants.RpcConstants.HOST;
 import static org.idea.irpc.framework.core.common.constants.RpcConstants.PORT;
 
@@ -42,7 +40,6 @@ import static org.idea.irpc.framework.core.common.constants.RpcConstants.PORT;
 @Slf4j
 public class Server {
     private ServerConfig serverConfig;
-    private RegistryService registryService;
 
     public static void main(String[] args) throws InterruptedException {
         // 配置服务器地址和端口
@@ -50,6 +47,7 @@ public class Server {
         serverConfig.setHost("127.0.0.1");
         serverConfig.setPort(9999);
         serverConfig.setApplicationName("cyan-irpc");
+        serverConfig.setRegisterAddr("127.0.0.1:2181");
 
         // 创建并配置服务器实例
         Server server = new Server();
@@ -82,11 +80,11 @@ public class Server {
          * - 处理实际的业务逻辑
          */
         // 默认线程数等于 CPU 核心数
-        EventLoopGroup workerGroup = new NioEventLoopGroup();
-
         // 或者显式设置线程数
         // EventLoopGroup workerGroup = new NioEventLoopGroup(16);  // 固定线程数
         // EventLoopGroup workerGroup = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() * 2);  // CPU核心数*2
+        EventLoopGroup workerGroup = new NioEventLoopGroup();
+
         ServerBootstrap bootstrap = new ServerBootstrap();
 
         // 设置主从线程组
@@ -178,11 +176,11 @@ public class Server {
         url.addParameter(PORT, String.valueOf(serverConfig.getPort()));
 
         // todo: 配置应该移到配置文件
-        if (registryService == null) {
-            registryService = new ZookeeperRegister("127.0.0.1:2181");
+        if (REGISTRY_SERVICE == null) {
+            REGISTRY_SERVICE = new ZookeeperRegister(serverConfig.getRegisterAddr());
         }
 
-        PROVIDED_URL_SET.add(url);
+//        PROVIDER_URL_SET.add(url);
     }
 
     public void batchExportUrl() {
@@ -194,12 +192,12 @@ public class Server {
         // - 使用 CountDownLatch 等并发工具来同步
         // gpt 说不用单独起一个线程, 可以优化register 如果注册很慢
 //        new Thread(() -> {
-//            for (URL url : PROVIDED_URL_SET) {
+//            for (URL url : PROVIDER_URL_SET) {
 //                registryService.register(url);
 //            }
 //        }).start();
-            for (URL url : PROVIDED_URL_SET) {
-                registryService.register(url);
+            for (URL url : PROVIDER_URL_SET) {
+                REGISTRY_SERVICE.register(url);
             }
     }
 }

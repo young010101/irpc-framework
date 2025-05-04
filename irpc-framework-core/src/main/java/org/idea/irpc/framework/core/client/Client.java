@@ -26,6 +26,8 @@ import org.idea.irpc.framework.core.registy.zookeeper.ZookeeperRegister;
 import org.idea.irpc.framework.interfaces.DataService;
 import org.idea.irpc.framework.interfaces.HelloService;
 
+import java.util.List;
+
 import static org.idea.irpc.framework.core.common.cache.CommonClientCache.SUBSCRIBE_SERVICE_LIST;
 
 /**
@@ -47,13 +49,13 @@ public class Client {
 
         EventLoopGroup group = new NioEventLoopGroup();
 
-        bootstrap.group(group)
-                .channel(NioSocketChannel.class);
+        bootstrap.group(group).channel(NioSocketChannel.class);
 
         bootstrap.handler(new ChannelInitializer<SocketChannel>() {
             @Override
             protected void initChannel(SocketChannel ch) {
-                ch.pipeline().addLast(new RpcEncoder())
+                ch.pipeline()
+                        .addLast(new RpcEncoder())
                         .addLast(new RpcDecoder())
                         .addLast(new ClientHandler());
             }
@@ -70,6 +72,7 @@ public class Client {
 
 //        this.startSendThread(future);
 
+        // 5月4日: 这一步几乎和前面没有关系,也不依赖于前面, 放在一起属实是很牵强的感觉
         // todo: 实现javassist
         return new RpcReference(new JDKProxyFactory());
     }
@@ -93,16 +96,20 @@ public class Client {
     }
 
     public void doConnectService() {
-        for (String providerServiceName : SUBSCRIBE_SERVICE_LIST) {
-            registryService.getProviderIps(providerServiceName).forEach(ip -> {
+        for (URL providerUrl : SUBSCRIBE_SERVICE_LIST) {
+            List<String> providerIps = registryService.getProviderIps(providerUrl.getServiceName());
+            providerIps.forEach(ip -> {
                 try {
-                    ConnectionHandler.connect(providerServiceName, ip);
+                    ConnectionHandler.connect(providerUrl.getServiceName(), ip);
                 } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
+                    log.error("[doConnectService]", e);
                 }
             });
             URL url = new URL();
-            url.setServiceName(providerServiceName);
+            // todo 原作者加入了 serviceName + "/provider" 没get到
+            url.setServiceName(providerUrl.getServiceName());
+            // todo这里的JSON是fastjson, 不是fastjson2. 要到doAfterSubscribe里解包
+            url.addParameter(RpcConstants.PROVIDER_IPS, JSON.toJSONString(providerIps));
             // 监听服务. 监听到就会发送事件event, 触发连接更新
             registryService.doAfterSubscribe(url);
         }
@@ -167,6 +174,7 @@ public class Client {
         client.doSubscribe(HelloService.class);
         client.doSubscribe(DataService.class);
 
+        // 只需要设置一次, 这是工具类
         ConnectionHandler.setBootstrap(client.getBootstrap());
 
         // 连接订阅的服务, 上一步订阅服务会把服务放进本地缓存, 使用前要先连接服务

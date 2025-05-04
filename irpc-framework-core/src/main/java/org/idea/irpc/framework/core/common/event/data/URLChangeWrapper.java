@@ -14,6 +14,7 @@ import java.util.List;
  *   <li>serviceName: "com.example.DemoService"</li>
  * </ul>
  * </p>
+ * @apiNote 注意: 当前的url不长这个样子
  * @author cyang
  */
 @Data

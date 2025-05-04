@@ -1,25 +1,24 @@
 package org.idea.irpc.framework.core.registy.zookeeper;
 
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
-import org.idea.irpc.framework.core.registy.URL;
 
 import java.util.Collections;
 import java.util.List;
-
-import static org.apache.zookeeper.Watcher.Event.EventType.NodeDeleted;
 
 /**
  * @Author linhao
  * @Date created in 4:06 下午 2021/12/11
  */
+@Slf4j
 public class CuratorZookeeperClient extends AbstractZookeeperClient {
 
     private CuratorFramework client;
@@ -167,21 +166,30 @@ public class CuratorZookeeperClient extends AbstractZookeeperClient {
         return false;
     }
 
+    /// 监听的是 **指定节点本身的数据变化** (Data Watcher)
+    ///
+    /// - **监听内容**: 节点数据(getData)的变化, 比如通过 `setData` 修改数据
+    /// - 不会监听子节点的变化, 比如新增删除
+    ///
+    /// @param path 路径
+    /// @param watcher data
     @Override
-    public void watchNodeData(String path, Watcher watcher) {
+    public void watchNodeData(@NonNull String path, Watcher watcher) {
         try {
             client.getData().usingWatcher(watcher).forPath(path);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Fail to watch node data at {}", path, e);
         }
     }
 
+    /// - 监听内容: 子节点列表变化
+    /// - 不会监听数据变化
     @Override
-    public void watchChildNodeData(String path, Watcher watcher) {
+    public void watchChildNodeList(@NonNull String path, Watcher watcher) {
         try {
             client.getChildren().usingWatcher(watcher).forPath(path);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Fail to watch node children list at {}", path, e);
         }
     }
 }

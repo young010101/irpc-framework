@@ -35,14 +35,15 @@ public class ConnectionHandler {
     /**
      * 构建单个连接通道 元操作，既要处理连接，还要统一将连接进行内存存储管理
      *
-     * @param providerIp
-     * @return
-     * @throws InterruptedException
+     * @param providerIp 用冒号隔开. 格式为 "ip:port", 用split(':')
+     * @throws InterruptedException cy: 每次都要抛出中断异常. 有无更加好的做法?
      */
     public static void connect(String providerServiceName, String providerIp) throws InterruptedException {
         if (bootstrap == null) {
             throw new RuntimeException("bootstrap can not be null");
         }
+
+        //===========解析ip和port 并得到channelFuture
         //格式错误类型的信息
         if(!providerIp.contains(":")){
             return;
@@ -52,8 +53,14 @@ public class ConnectionHandler {
         int port = Integer.parseInt(providerAddress[1]);
         //到底这个channelFuture里面是什么
         ChannelFuture channelFuture = bootstrap.connect(ip, port).sync();
-        ChannelFutureWrapper channelFutureWrapper = new ChannelFutureWrapper(ip, port);
+
+//        URL_MAP
+        ChannelFutureWrapper channelFutureWrapper = new ChannelFutureWrapper(ip, port, 100);
         channelFutureWrapper.setChannelFuture(channelFuture);
+
+        //todo: set weight for wrapper
+
+        //
         SERVER_ADDRESS.add(providerIp);
         List<ChannelFutureWrapper> channelFutureWrappers = CONNECT_MAP.get(providerServiceName);
         if (CommonUtils.isEmptyList(channelFutureWrappers)) {

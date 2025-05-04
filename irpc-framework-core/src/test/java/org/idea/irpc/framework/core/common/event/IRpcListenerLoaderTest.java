@@ -33,7 +33,7 @@ class IRpcListenerLoaderTest {
 
         //获取listener list
         Class<IRpcListenerLoader>  clazz = IRpcListenerLoader.class;
-        Field iRpcListenerListField = clazz.getDeclaredField("iRpcListenerList");
+        Field iRpcListenerListField = clazz.getDeclaredField("LISTENERS");
         iRpcListenerListField.setAccessible(true);
         List<?> listenerList = (List<?>) iRpcListenerListField.get(null);
 

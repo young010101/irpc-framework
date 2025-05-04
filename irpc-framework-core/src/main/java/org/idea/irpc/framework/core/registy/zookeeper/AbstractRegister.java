@@ -36,9 +36,13 @@ public abstract class AbstractRegister implements RegistryService {
         PROVIDER_URL_SET.remove(url);
     }
 
+    /**
+     * 在路由层的实现中改为放入url, 原本只用放入类的权限定名
+     * @param url 主要用到类的权限定名
+     */
     @Override
     public void subscribe(URL url) {
-        SUBSCRIBE_SERVICE_LIST.add(url.getServiceName());
+        SUBSCRIBE_SERVICE_LIST.add(url);
     }
 
     /**

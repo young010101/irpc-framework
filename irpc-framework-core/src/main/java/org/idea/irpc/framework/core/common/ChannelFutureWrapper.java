@@ -15,4 +15,9 @@ public class ChannelFutureWrapper {
     private final String host;
     private final int port;
     private ChannelFuture channelFuture;
+
+    /**
+     * 规定为100的整数倍, 为什么?
+     */
+    private final int weight;
 }

@@ -25,7 +25,7 @@ import static org.idea.irpc.framework.core.common.cache.CommonClientCache.CONNEC
 public class ServiceUpdateListener implements IRpcListener<IRpcUpdateEvent> {
 
     @Override
-    public void callBack(Object t) {
+    public void callback(Object t) {
         // 1. 获取到字节点的数据信息
         URLChangeWrapper urlChangeWrapper = (URLChangeWrapper) t;
         // 2. 获取本地连接缓存, 当前已有的连接列表
@@ -60,7 +60,7 @@ public class ServiceUpdateListener implements IRpcListener<IRpcUpdateEvent> {
                 String[] splitUrl = newProviderUrl.split(":");
                 String host = splitUrl[0];
                 int port = Integer.parseInt(splitUrl[1]);
-                ChannelFutureWrapper channelFutureWrapper = new ChannelFutureWrapper(host, port);
+                ChannelFutureWrapper channelFutureWrapper = new ChannelFutureWrapper(host, port, 100);
                 ChannelFuture channelFuture;
                 try {
                     channelFuture = ConnectionHandler.createChannelFuture(host, port);

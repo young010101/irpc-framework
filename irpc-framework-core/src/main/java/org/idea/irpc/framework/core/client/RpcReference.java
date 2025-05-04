@@ -5,7 +5,7 @@ import lombok.Setter;
 import org.idea.irpc.framework.core.proxy.ProxyFactory;
 
 /**
- * 主要用于 Client
+ * 主要用于 Client, 对proxyFactory的封装
  * @author cyang
  */
 @Setter
@@ -14,10 +14,10 @@ public class RpcReference {
     private ProxyFactory proxyFactory;
 
     /**
-     * 返回代理对象
-     * @param clazz 某种Server的getClass
-     * @return 返回代理对象, 可以像本地方法一般调用
-     * @param <T> 一般是某种 Server 类
+     * 根据接口类型返回代理对象
+     * @param clazz 某种Server的getClass, 是接口, e.g. DataService.class
+     * @return 返回代理对象, 可以像本地方法一般调用, e.g. DataService
+     * @param <T> 一般是某种 Server 类, e.g. DataService
      * @throws Exception proxyFactory 抛出的异常, 目前还不知道是什么异常
      */
     public <T> T getProxy(Class<T> clazz) throws Exception {

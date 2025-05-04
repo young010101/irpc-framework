@@ -1,6 +1,8 @@
 package org.idea.irpc.framework.core.common;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.io.Serializable;
 import java.io.Serial;
 
@@ -14,19 +16,20 @@ import java.io.Serial;
  * @since 2025-04
  */
 @Data
+@NoArgsConstructor
 public class RpcInvocation implements Serializable {
     @Serial
     private static final long serialVersionUID = 2025042701L;
 
     /**
-     * 请求的目标方法名，例如：findUser
-     */
-    private String targetMethod;
-
-    /**
      * 请求的目标服务名称，例如：com.idea.user.UserService
      */
     private String targetServiceName;
+
+    /**
+     * 请求的目标方法名，例如：findUser
+     */
+    private String targetMethod;
 
     /**
      * 请求参数信息
@@ -47,4 +50,11 @@ public class RpcInvocation implements Serializable {
      * </p>
      */
     private Object response;
+
+    public RpcInvocation(String targetServiceName, String targetMethod, Object[] args, String uuid) {
+        this.targetServiceName = targetServiceName;
+        this.targetMethod = targetMethod;
+        this.args = args;
+        this.uuid = uuid;
+    }
 }

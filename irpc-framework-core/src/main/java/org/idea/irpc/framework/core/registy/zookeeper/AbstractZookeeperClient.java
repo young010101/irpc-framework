@@ -156,6 +156,6 @@ public abstract class AbstractZookeeperClient {
      * @param path
      * @param watcher
      */
-    public abstract void watchChildNodeData(String path, Watcher watcher);
+    public abstract void watchChildNodeList(String path, Watcher watcher);
 
 }
