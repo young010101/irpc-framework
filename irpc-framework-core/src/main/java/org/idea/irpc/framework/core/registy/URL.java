@@ -57,6 +57,7 @@ public class URL {
     /**
      * 将URL转换为写入zk的provider节点下的一段字符串
      * 可以解析出 providerNodeInfo
+     * <p>相当于 zookeeper的 node data</p>
      *
      * @param url split by ";", len == 5;
      * @return node data

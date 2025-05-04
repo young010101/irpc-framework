@@ -2,7 +2,6 @@ package org.idea.irpc.framework.core.common;
 
 import io.netty.channel.ChannelFuture;
 import lombok.Data;
-import lombok.RequiredArgsConstructor;
 
 /**
  * netty {@code ChannelFuture}的包装类
@@ -10,7 +9,6 @@ import lombok.RequiredArgsConstructor;
  * @see ChannelFuture
  */
 @Data
-@RequiredArgsConstructor
 public class ChannelFutureWrapper {
     private final String host;
     private final int port;
@@ -19,5 +17,11 @@ public class ChannelFutureWrapper {
     /**
      * 规定为100的整数倍, 为什么?
      */
-    private final int weight;
+    private int weight;
+
+    public ChannelFutureWrapper(String host, int port, int weight) {
+        this.host = host;
+        this.port = port;
+        this.weight = weight;
+    }
 }

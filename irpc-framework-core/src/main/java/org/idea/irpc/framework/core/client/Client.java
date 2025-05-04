@@ -16,19 +16,24 @@ import org.idea.irpc.framework.core.common.RpcInvocation;
 import org.idea.irpc.framework.core.common.RpcProtocol;
 import org.idea.irpc.framework.core.common.cache.CommonClientCache;
 import org.idea.irpc.framework.core.common.config.client.ClientConfig;
-import org.idea.irpc.framework.core.common.constants.RpcConstants;
 import org.idea.irpc.framework.core.common.event.IRpcListenerLoader;
 import org.idea.irpc.framework.core.common.utils.CommonUtils;
 import org.idea.irpc.framework.core.proxy.jdk.JDKProxyFactory;
 import org.idea.irpc.framework.core.registy.URL;
 import org.idea.irpc.framework.core.registy.zookeeper.AbstractRegister;
 import org.idea.irpc.framework.core.registy.zookeeper.ZookeeperRegister;
+import org.idea.irpc.framework.core.route.RandomRouteImpl;
+import org.idea.irpc.framework.core.route.RotateRouteImpl;
 import org.idea.irpc.framework.interfaces.DataService;
 import org.idea.irpc.framework.interfaces.HelloService;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import static org.idea.irpc.framework.core.common.cache.CommonClientCache.I_ROUTE;
 import static org.idea.irpc.framework.core.common.cache.CommonClientCache.SUBSCRIBE_SERVICE_LIST;
+import static org.idea.irpc.framework.core.common.constants.RpcConstants.*;
 
 /**
  * @author cyang
@@ -87,20 +92,18 @@ public class Client {
             registryService = new ZookeeperRegister(clientConfig.getRegisterAddress());
         }
 
-        URL url = new URL();
-        url.setApplicationName(clientConfig.getApplicationName());
-        url.setServiceName(serviceBean.getName());
-        url.addParameter(RpcConstants.HOST, CommonUtils.getIpAddress());
+        HashMap<String, String> params = new HashMap<>(Map.of(HOST, CommonUtils.getIpAddress()));
+        URL url = new URL(clientConfig.getApplicationName(), serviceBean.getName(), params);
 
         registryService.subscribe(url);
     }
 
     public void doConnectService() {
         for (URL providerUrl : SUBSCRIBE_SERVICE_LIST) {
-            List<String> providerIps = registryService.getProviderIps(providerUrl.getServiceName());
-            providerIps.forEach(ip -> {
+            List<String> providerAddresses = registryService.getProviderAddresses(providerUrl.getServiceName());
+            providerAddresses.forEach(addr -> {
                 try {
-                    ConnectionHandler.connect(providerUrl.getServiceName(), ip);
+                    ConnectionHandler.connect(providerUrl.getServiceName(), addr);
                 } catch (InterruptedException e) {
                     log.error("[doConnectService]", e);
                 }
@@ -109,7 +112,7 @@ public class Client {
             // todo 原作者加入了 serviceName + "/provider" 没get到
             url.setServiceName(providerUrl.getServiceName());
             // todo这里的JSON是fastjson, 不是fastjson2. 要到doAfterSubscribe里解包
-            url.addParameter(RpcConstants.PROVIDER_IPS, JSON.toJSONString(providerIps));
+            url.addParameter(PROVIDER_ADDRESSES_JSON_STRING, JSON.toJSONString(providerAddresses));
             // 监听服务. 监听到就会发送事件event, 触发连接更新
             registryService.doAfterSubscribe(url);
         }
@@ -130,6 +133,7 @@ public class Client {
                     RpcInvocation data = CommonClientCache.SEND_QUEUE.take();
                     String json = JSON.toJSONString(data);
                     RpcProtocol protocol = new RpcProtocol(json.getBytes());
+                    // 这里使用 Random 获取, 在路由层将改为按权重获取
                     ChannelFuture future = ConnectionHandler.getChannelFuture(data.getTargetServiceName());
                     if (future.channel().isActive()) {
                         future.channel().writeAndFlush(protocol);
@@ -156,7 +160,17 @@ public class Client {
         new Thread(new AsyncSentJob()).start();
     }
 
+    private void initRouteStrategy() {
+        String routeStrategy = clientConfig.getRouteStrategy();
+        if (RANDOM_ROUTE_STRATEGY.equalsIgnoreCase(routeStrategy)) {
+            I_ROUTE = new RandomRouteImpl();
+        } else if (ROTATE_ROUTE_STRATEGY.equalsIgnoreCase(routeStrategy)) {
+            I_ROUTE = new RotateRouteImpl();
+        }
+    }
+
     public static void main(String[] args) throws Exception {
+        // 1. client 配置
         // todo: 形成配置文件, 在initClientApplication加载
         ClientConfig clientConfig = new ClientConfig();
         clientConfig.setServerAddress("127.0.0.1");
@@ -164,10 +178,15 @@ public class Client {
         clientConfig.setRegisterAddress("127.0.0.1:2181");
         // 名字不重要,完全没有影响,作用应该是为了连接使用
         clientConfig.setApplicationName("cyan-client");
+        clientConfig.setRouteStrategy(ROTATE_ROUTE_STRATEGY);
 
+        // 2. 创建 client 并加载配置
         Client client = new Client();
         client.setClientConfig(clientConfig);
 
+        client.initRouteStrategy();
+
+        // 3. bootstrap, listener, 获得代理工厂
         RpcReference rpcReference = client.initClientApplication();
 
         // 订阅服务

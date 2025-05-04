@@ -5,6 +5,8 @@ import org.idea.irpc.framework.core.common.ChannelFutureWrapper;
 import org.idea.irpc.framework.core.common.RpcInvocation;
 import org.idea.irpc.framework.core.proxy.jdk.JDKClientInvocationHandler;
 import org.idea.irpc.framework.core.registy.URL;
+import org.idea.irpc.framework.core.route.IRoute;
+import org.idea.irpc.framework.core.route.RandomRouteImpl;
 
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -44,16 +46,17 @@ public class CommonClientCache {
 
 
     /**
-     * 已建立的连接的缓存, 如果服务变更(common 里的 update event), 会更新缓存, 所以用到的地方有event callback里
+     * 已建立的连接的缓存. key 是 serviceName
      *
-     * <p>
-     * 每次远程调用都是从这里选取服务提供者
-     * </p>
+     * <p>每次远程调用都是从这里选取服务提供者.
+     * 如果服务变更(common 里的 update event), 会更新缓存, 所以用到的地方有event callback里
      */
     public static final Map<String, List<ChannelFutureWrapper>> CONNECT_MAP = new ConcurrentHashMap<>();
 
     /**
-     * 在路由层中, 将 String改为了URL
+     * 在订阅时填充. 客户端后续根据里面的内容建立与服务器的链接.
+     *
+     * <p>在路由层中, 将 String改为了URL
      */
     public static final List<URL> SUBSCRIBE_SERVICE_LIST = new ArrayList<>();
 
@@ -79,4 +82,6 @@ public class CommonClientCache {
      * todo: 这是干啥的? 和{@code CONNECT_MAP}什么关系?
      */
     public static final Set<String> SERVER_ADDRESS = new HashSet<>();
+
+    public static IRoute I_ROUTE = new RandomRouteImpl();
 }

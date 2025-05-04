@@ -17,9 +17,9 @@ public class ServerZookeeper {
 
         ZookeeperRegister zookeeperRegister = new ZookeeperRegister("localhost:2181");
         // 创建temporary Node, 保证服务下线, zookeeper的节点就会消失, 但是不会马上消失
-        log.info("{}", zookeeperRegister.getProviderIps(url.getServiceName()));
+        log.info("{}", zookeeperRegister.getProviderAddresses(url.getServiceName()));
         zookeeperRegister.register(url);
-        log.info("{}", zookeeperRegister.getProviderIps(url.getServiceName()));
+        log.info("{}", zookeeperRegister.getProviderAddresses(url.getServiceName()));
 
         try {
             Thread.sleep(10000000);

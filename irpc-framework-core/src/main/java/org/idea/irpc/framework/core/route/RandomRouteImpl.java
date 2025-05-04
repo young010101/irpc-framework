@@ -3,8 +3,12 @@ package org.idea.irpc.framework.core.route;
 import lombok.extern.slf4j.Slf4j;
 import org.idea.irpc.framework.core.common.ChannelFutureWrapper;
 import org.idea.irpc.framework.core.registy.URL;
+import org.idea.irpc.framework.interfaces.DataService;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
 
 import static org.idea.irpc.framework.core.common.cache.CommonClientCache.*;
 
@@ -61,7 +65,7 @@ public class RandomRouteImpl implements IRoute {
     /**
      * 更新权重
      *
-     * @param url 在注册层定义的. 为何上面用Selector这里用url?
+     * @param url 只用到 serviceName. 在注册层定义的. 为何上面用Selector这里用url?
      */
     @Override
     public void update(URL url) {
@@ -80,10 +84,12 @@ public class RandomRouteImpl implements IRoute {
     }
 
     /**
-     * 权重是100的整数倍
-     * 100 -> 重复 1次, 200 -> 重复2次, 900 -> 重复 9次
+     * 权重是100的整数倍.
+     *
+     * <p>100 -> 重复 1次, 200 -> 重复2次, 900 -> 重复 9次
+     *
      * @param wrappers 已经建立的连接
-     * @return 一个size == 100的List
+     * @return 一个顺序List, 用于后续随机打乱. 我推测 size==100
      */
     private List<Integer> createWeightIndexList(List<ChannelFutureWrapper> wrappers) {
         List<Integer> result = new ArrayList<>(100);
@@ -98,6 +104,7 @@ public class RandomRouteImpl implements IRoute {
 
     /**
      * 标准的 Fisher–Yates 洗牌，不存在概率偏差
+     *
      * @param len len
      * @return shuffled indices
      */
@@ -117,10 +124,20 @@ public class RandomRouteImpl implements IRoute {
         wrappers.add(new ChannelFutureWrapper(null, 2181, 1000));
         wrappers.add(new ChannelFutureWrapper(null, 2181, 8000));
         wrappers.add(new ChannelFutureWrapper(null, 2181, 900));
+        RandomRouteImpl route = new RandomRouteImpl();
 
-        RandomRouteImpl randomRouteImpl = new RandomRouteImpl();
-        List<Integer> weightList= randomRouteImpl.createWeightIndexList(wrappers);
+        // test createWeightIndexList
+        List<Integer> weightList = route.createWeightIndexList(wrappers);
         log.info("weightList size:{}", weightList.size());
         log.info("weightList:{}", weightList);
+
+        URL url = new URL();
+        url.setServiceName(DataService.class.getName());
+        CONNECT_MAP.put(url.getServiceName(), wrappers);
+        route.update(url);
+        for (var e : SERVICE_ROUTE_MAP.get(url.getServiceName())) {
+           log.info("wrappers: {}", e);
+        }
+
     }
 }

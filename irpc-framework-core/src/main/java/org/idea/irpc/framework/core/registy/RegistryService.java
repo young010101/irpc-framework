@@ -1,6 +1,7 @@
 package org.idea.irpc.framework.core.registy;
 
 /**
+ * 提供4个接口.
  * lesson 3 注册层设计 提到的一个类
  *
  * @author Cheng Yang

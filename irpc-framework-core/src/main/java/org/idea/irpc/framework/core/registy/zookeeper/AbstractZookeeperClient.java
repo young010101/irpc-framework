@@ -69,7 +69,7 @@ public abstract class AbstractZookeeperClient {
      * @param path
      * @return
      */
-    public abstract List<String> getChildrenData(String path);
+    public abstract List<String> getChildren(String path);
 
     /**
      * 创建持久化类型节点数据信息

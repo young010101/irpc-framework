@@ -37,7 +37,7 @@ public class ServiceUpdateListener implements IRpcListener<IRpcUpdateEvent> {
         }
 
         // 4. 遍历旧连接, 筛选还有效的
-        List<String> matchProviderUrl = urlChangeWrapper.getProviderUrl();
+        List<String> matchProviderUrl = urlChangeWrapper.getProviderAddresses();
         Set<String> finalUrl = new HashSet<>();
         List<ChannelFutureWrapper> finalChannelFutureWrappers = new ArrayList<>();
         for (ChannelFutureWrapper w : cacheWrappers) {

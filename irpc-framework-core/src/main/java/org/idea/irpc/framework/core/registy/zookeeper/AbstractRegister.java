@@ -65,7 +65,7 @@ public abstract class AbstractRegister implements RegistryService {
      * @param serviceName
      * @return
      */
-    public abstract List<String> getProviderIps(String serviceName);
+    public abstract List<String> getProviderAddresses(String serviceName);
 
 
     @Override

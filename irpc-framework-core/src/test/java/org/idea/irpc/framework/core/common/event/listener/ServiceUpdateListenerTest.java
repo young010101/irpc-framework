@@ -53,7 +53,7 @@ class ServiceUpdateListenerTest {
     void callback() {
         URLChangeWrapper url = new URLChangeWrapper();
         url.setServiceName(HelloService.class.getName());
-        url.setProviderUrl(List.of("127.0.0.1:8080", "127.0.0.1:8082"));
+        url.setProviderAddresses(List.of("127.0.0.1:8080", "127.0.0.1:8082"));
 
 
         try (MockedStatic<ConnectionHandler> mocked = Mockito.mockStatic(ConnectionHandler.class)) {

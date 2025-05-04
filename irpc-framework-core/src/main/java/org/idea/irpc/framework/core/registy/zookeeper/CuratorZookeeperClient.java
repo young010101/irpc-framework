@@ -65,25 +65,36 @@ public class CuratorZookeeperClient extends AbstractZookeeperClient {
         return null;
     }
 
+    /**
+     * 获取子节点
+     * @param path 节点路径, e.g. /irpc/{serviceName}/provider
+     * @return 子节点
+     */
     @Override
-    public List<String> getChildrenData(String path) {
+    public List<String> getChildren(String path) {
         try {
-            List<String> childrenData = client.getChildren().forPath(path);
-            return childrenData;
+            return client.getChildren().forPath(path);
         } catch (KeeperException.NoNodeException e) {
+            log.error("没有节点", e);
             return null;
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("<UNK>", e);
         }
+        log.error("Get children fail");
         return null;
     }
 
+    /**
+     * 创建永久的containers. container 下的节点为空时, container 将被删除
+     * @param path e.g. "/irpc",
+     * @param data 占位数据, 一般为空字符串
+     */
     @Override
-    public void createPersistentData(String address, String data) {
+    public void createPersistentData(String path, String data) {
         try {
-            client.create().creatingParentContainersIfNeeded().withMode(CreateMode.PERSISTENT).forPath(address, data.getBytes());
+            client.create().creatingParentContainersIfNeeded().withMode(CreateMode.PERSISTENT).forPath(path, data.getBytes());
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("create container failed", e);
         }
     }
 

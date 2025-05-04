@@ -180,7 +180,8 @@ public class Server {
             REGISTRY_SERVICE = new ZookeeperRegister(serverConfig.getRegisterAddr());
         }
 
-//        PROVIDER_URL_SET.add(url);
+        // todo 可以去掉么?
+        PROVIDER_URL_SET.add(url);
     }
 
     public void batchExportUrl() {
@@ -196,8 +197,10 @@ public class Server {
 //                registryService.register(url);
 //            }
 //        }).start();
-            for (URL url : PROVIDER_URL_SET) {
-                REGISTRY_SERVICE.register(url);
-            }
+
+        for (URL url : PROVIDER_URL_SET) {
+            // 会再次保存到本地缓存 PROVIDER_URL_SET
+            REGISTRY_SERVICE.register(url);
+        }
     }
 }

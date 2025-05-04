@@ -6,6 +6,7 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.idea.irpc.framework.core.common.event.IRpcEvent;
 import org.idea.irpc.framework.core.common.event.IRpcListenerLoader;
+import org.idea.irpc.framework.core.common.event.IRpcNodeDataChangeEvent;
 import org.idea.irpc.framework.core.common.event.IRpcUpdateEvent;
 import org.idea.irpc.framework.core.common.event.data.URLChangeWrapper;
 import org.idea.irpc.framework.core.registy.RegistryService;
@@ -26,8 +27,9 @@ import static org.idea.irpc.framework.core.common.constants.RpcConstants.*;
 ///       |--192.168.43.227:8183
 ///       |--192.168.43.227:8184
 ///       |--{ip}:{port}
-/// ```
+///```
 /// 从 /irpc/{serviceName}/provider获取ip
+///
 /// @author cyang
 /// @author linhao
 /// @since created in 4:44 下午 2021/12/11
@@ -40,22 +42,8 @@ public class ZookeeperRegister extends AbstractRegister implements RegistryServi
 
     private AbstractZookeeperClient zkClient;
 
-
-    private String getProviderPath(URL url) {
-        return ROOT
-                + "/" + url.getServiceName()
-                + PROVIDER_NODE
-                +"/" + url.getParameters().get(HOST) + ":" + url.getParameters().get(PORT);
-    }
-
-    private String getConsumerPath(URL url) {
-        return ROOT
-                + "/" + url.getServiceName()
-                + CONSUMER_NODE
-                + "/" + url.getApplicationName() + ":" + url.getParameters().get(HOST) + ":";
-    }
-
     /**
+     * zookeeper 的地址.
      * 踩坑了, client的 register address忘记配置
      *
      * @param address nonnull
@@ -64,14 +52,30 @@ public class ZookeeperRegister extends AbstractRegister implements RegistryServi
         this.zkClient = new CuratorZookeeperClient(address);
     }
 
-
-    /// `/irpc/{serviceName}/provider`
-    @Override
-    public List<String> getProviderIps(@NonNull String serviceName) {
-        log.debug("Fetching providers for service {}", serviceName);
-        return zkClient.getChildrenData(ROOT + "/" + serviceName + PROVIDER_NODE);
+    private String getProviderPath(URL url) {
+        return ROOT
+                + "/" + url.getServiceName()
+                + PROVIDER_NODE
+                + "/" + url.getParameters().get(HOST) + ":" + url.getParameters().get(PORT);
     }
 
+    // 为何有冒号在末尾?
+    private String getConsumerPath(URL url) {
+        return ROOT
+                + "/" + url.getServiceName()
+                + CONSUMER_NODE
+                + "/" + url.getApplicationName() + ":" + url.getParameters().get(HOST) + ":";
+    }
+
+    /// e.g. `/irpc/{serviceName}/provider`
+    ///
+    /// @param serviceName e.g. DataService
+    /// @return {ip}:{port}, e.g. 127.0.0.1:8080
+    @Override
+    public List<String> getProviderAddresses(@NonNull String serviceName) {
+        log.debug("Fetching providers for service {}", serviceName);
+        return zkClient.getChildren(ROOT + "/" + serviceName + PROVIDER_NODE);
+    }
 
     /**
      * server使用的
@@ -126,32 +130,63 @@ public class ZookeeperRegister extends AbstractRegister implements RegistryServi
 
     @Override
     public void doAfterSubscribe(URL url) {
-        //监听是否有新的服务注册
-        String newServerNodePath = String.format("%s/%s%s", ROOT, url.getServiceName(), PROVIDER_NODE);
-        // see this 的 getProviderIps
-        String providerIpsJson = url.getParameters().get(PROVIDER_IPS);
-        List<String> list = JSON.parseObject(providerIpsJson, new TypeReference<List<String>>() {});
-        watchChildNodeList(newServerNodePath);
+        // 1. 监听是否有新的服务注册
+        // todo 可以写入 this? 这样可能会减少直观性
+        String newProviderNodePath = getProviderNodePath(url);
+        log.debug("watch provider addresses for service {}", url.getServiceName());
+        watchChildNodeList(newProviderNodePath);
+
+        // 2. 监听权重是否发生变化
+        // list 里放服务提供者地址(ip:port), see this 的 getProviderIps
+        // 在client 订阅服务时, 会放入
+        String providerAddressesJson = url.getParameters().get(PROVIDER_ADDRESSES_JSON_STRING);
+        log.debug("provider addresses for service {}", providerAddressesJson);
+        // todo 这里使用了 fastjson, 可以看看业界最成熟的方案和fastjson2
+        List<String> providerAddressList = JSON.parseObject(providerAddressesJson, new TypeReference<>() {
+        });
+        log.debug("provider addresses for service {}", providerAddressesJson);
+        for (String addr :  providerAddressList) {
+            watchNodeDataChange(newProviderNodePath + "/" + addr);
+        }
     }
 
-    public void watchChildNodeList(String newServerNodePath) {
-        zkClient.watchChildNodeList(newServerNodePath, watchedEvent -> {
-            System.out.println(watchedEvent);
-            String path = watchedEvent.getPath();
-            List<String> childrenDataList = zkClient.getChildrenData(path);
-            URLChangeWrapper urlChangeWrapper = new URLChangeWrapper();
-            urlChangeWrapper.setProviderUrl(childrenDataList);
-            urlChangeWrapper.setServiceName(path.split("/")[2]);
+    private static String getProviderNodePath(URL url) {
+        return String.format("%s/%s%s", ROOT, url.getServiceName(), PROVIDER_NODE);
+    }
+
+    /**
+     * watch address
+     * 服务提供者地址上下线, 获得新的ip和port或者下线
+     * @param newProviderNodePath e.g. /{root}/{serviceName}/provider
+     */
+    public void watchChildNodeList(String newProviderNodePath) {
+        zkClient.watchChildNodeList(newProviderNodePath, addrUpdateEvent -> {
+            log.debug("watched event: {}", addrUpdateEvent);
+            String providerPath = addrUpdateEvent.getPath();
+            log.debug("path: {}", providerPath);
+            List<String> addresses = zkClient.getChildren(providerPath);
+            // todo path的split应该写入url
+            URLChangeWrapper addrUpdateWrapper = new URLChangeWrapper(addresses, getServiceName(providerPath));
+            log.debug("URLChangeWrapper: {}", addrUpdateWrapper);
             //自定义的一套事件监听组件
-            IRpcEvent iRpcEvent = new IRpcUpdateEvent(urlChangeWrapper);
-            IRpcListenerLoader.sendEvent(iRpcEvent);
-            //收到回调之后在注册一次监听，这样能保证一直都收到消息
-            watchChildNodeList(path);
+            IRpcListenerLoader.sendEvent(new IRpcUpdateEvent(addrUpdateWrapper));
+            //收到回调之后再注册一次监听，这样能保证一直都收到消息
+            watchChildNodeList(providerPath);
         });
     }
 
     /**
+     *
+     * @param providerPath 上面
+     * @return 2 是对应 build provider
+     */
+    private static String getServiceName(String providerPath) {
+        return providerPath.split("/")[2];
+    }
+
+    /**
      * 获取weight的变化
+     *
      * @param newServerNodePath
      */
     public void watchNodeDataChange(String newServerNodePath) {
@@ -160,10 +195,9 @@ public class ZookeeperRegister extends AbstractRegister implements RegistryServi
             String path = watchedEvent.getPath();
             String nodeData = zkClient.getNodeData(path);
             String replace = nodeData.replace(";", "/");
-
             ProviderNodeInfo providerNodeInfo = URL.buildUrlFromUrlStr(replace);
-
-            IRpcEvent iRpcEvent = new IRpcUpdateEvent(providerNodeInfo);
+            IRpcEvent iRpcEvent = new IRpcNodeDataChangeEvent(providerNodeInfo);
+            IRpcListenerLoader.sendEvent(iRpcEvent);
         });
     }
 
@@ -179,9 +213,19 @@ public class ZookeeperRegister extends AbstractRegister implements RegistryServi
     }
 
     public static void main(String[] args) throws InterruptedException {
-        ZookeeperRegister zookeeperRegister = new ZookeeperRegister("localhost:2181");
-        List<String> urls = zookeeperRegister.getProviderIps(DataService.class.getName());
-        System.out.println(urls);
+
+        // 初始化测试
+        ZookeeperRegister register = new ZookeeperRegister("localhost:2181");
+        URL url = new URL();
+        url.setServiceName(DataService.class.getName());
+
+        // 测试 provider address
+        List<String> addresses = register.getProviderAddresses(url.getServiceName());
+        log.info("addresses (port:ip): {}", addresses);
+
+        // 测试 afterSubscribe
+        register.doAfterSubscribe(url);
+
         Thread.sleep(2000000);
     }
 }

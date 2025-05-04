@@ -16,7 +16,7 @@ public class TestZookeeperRegister {
     @Test
     public void test() throws InterruptedException {
         ZookeeperRegister zookeeperRegister = new ZookeeperRegister("localhost:2181");
-        List<String> urls = zookeeperRegister.getProviderIps(DataService.class.getName());
+        List<String> urls = zookeeperRegister.getProviderAddresses(DataService.class.getName());
         System.out.println(urls);
         Thread.sleep(2000000);
     }
@@ -33,9 +33,9 @@ public class TestZookeeperRegister {
 
         ZookeeperRegister zookeeperRegister = new ZookeeperRegister("localhost:2181");
         // 创建temporary Node, 保证服务下线, zookeeper的节点就会消失, 但是不会马上消失
-        log.info("{}", zookeeperRegister.getProviderIps(url.getServiceName()));
+        log.info("{}", zookeeperRegister.getProviderAddresses(url.getServiceName()));
         zookeeperRegister.register(url);
-        log.info("{}", zookeeperRegister.getProviderIps(url.getServiceName()));
+        log.info("{}", zookeeperRegister.getProviderAddresses(url.getServiceName()));
     }
 
     @Test

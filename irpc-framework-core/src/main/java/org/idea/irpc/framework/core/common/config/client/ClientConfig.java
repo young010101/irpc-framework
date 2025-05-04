@@ -17,4 +17,6 @@ public class ClientConfig {
      */
     private String registerAddress;
     private String applicationName;
+
+    private String routeStrategy;
 }
