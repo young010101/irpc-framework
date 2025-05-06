@@ -185,10 +185,10 @@ public class Client {
             try {
                 while (!Thread.currentThread().isInterrupted()) {
                     RpcInvocation data = SEND_QUEUE.take();
-                    String json = JSON.toJSONString(data);
-                    RpcProtocol protocol = new RpcProtocol(json.getBytes());
+                    RpcProtocol protocol = new RpcProtocol(CLIENT_SERIALIZE_FACTORY.serialize(data));
                     // 这里使用 Random 获取, 在路由层将改为按权重获取
                     ChannelFuture future = ConnectionHandler.getChannelFuture(data.getTargetServiceName());
+                    // 这里是我自己问gpt引入的
                     if (future.channel().isActive()) {
                         future.channel().writeAndFlush(protocol);
                     } else {

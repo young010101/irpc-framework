@@ -20,6 +20,8 @@ public class KryoSerializeFactory implements SerializerFactory {
              Output output = new Output(baos)) {
             Kryo kryo = KRYO.get();
             kryo.writeClassAndObject(output, obj);
+            // todo: flush 非常关键
+            output.flush();
             return baos.toByteArray();
         } catch (Exception e) {
             throw new RuntimeException(e);

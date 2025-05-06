@@ -23,7 +23,8 @@ public class PropertiesBoostrap {
         clientConfig.setRouteStrategy(ROTATE_ROUTE_STRATEGY);
 
         // 4.
-        clientConfig.setClientSerializer(FAST_JSON_SERIALIZE_STRATEGY);
+//        clientConfig.setClientSerializer(FAST_JSON_SERIALIZE_STRATEGY);
+        clientConfig.setClientSerializer(KRYO_SERIALIZE_STRATEGY);
         return clientConfig;
     }
     public static ServerConfig loadServerConfig() {
@@ -31,7 +32,8 @@ public class PropertiesBoostrap {
         serverConfig.setServerPort(9999);
         serverConfig.setApplicationName("easy-rpc-server");
         serverConfig.setRegisterAddr("127.0.0.1:2181");
-        serverConfig.setServerSerialize(FAST_JSON_SERIALIZE_STRATEGY);
+//        serverConfig.setServerSerialize(FAST_JSON_SERIALIZE_STRATEGY);
+        serverConfig.setServerSerialize(KRYO_SERIALIZE_STRATEGY);
         return serverConfig;
     }
 }

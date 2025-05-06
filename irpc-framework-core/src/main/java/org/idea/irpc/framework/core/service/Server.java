@@ -8,6 +8,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import lombok.Data;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.idea.irpc.framework.core.common.RpcDecoder;
@@ -40,10 +41,22 @@ import static org.idea.irpc.framework.core.common.constants.RpcConstants.*;
  * @version 1.0
  * @since 2025-03
  */
-@Setter
+@Data
 @Slf4j
 public class Server {
     private ServerConfig serverConfig;
+
+    /// loadConfig and init
+    public void initCache() {
+        serverConfig = PropertiesBoostrap.loadServerConfig();
+
+        String serverSerialize = serverConfig.getServerSerialize();
+        switch (serverSerialize) {
+            case FAST_JSON_SERIALIZE_STRATEGY -> SERVER_SERIALIZER = new FastJsonSerializerFactory();
+            case KRYO_SERIALIZE_STRATEGY -> SERVER_SERIALIZER = new KryoSerializeFactory();
+            default -> throw new RuntimeException("Invalid server serialize");
+        }
+    }
 
     public void exportService(Object serviceBean) {
         registerService(serviceBean);
@@ -82,7 +95,6 @@ public class Server {
          */
         // 默认线程数等于 CPU 核心数
         // 或者显式设置线程数
-        // EventLoopGroup workerGroup = new NioEventLoopGroup(16);  // 固定线程数
         // EventLoopGroup workerGroup = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() * 2);  // CPU核心数*2
         EventLoopGroup workerGroup = new NioEventLoopGroup();
 
@@ -113,7 +125,7 @@ public class Server {
         bootstrap.childHandler(new ChannelInitializer<SocketChannel>() {
             @Override
             protected void initChannel(SocketChannel ch) {
-                log.info("init channel");
+                log.info("init channel. 不在主线程执行, 我觉得是在处理IO的eventLoop执行");
                 // 配置处理器链
                 // 1. 编码器：将对象转换为字节
                 // 2. 解码器：将字节转换为对象
@@ -123,8 +135,6 @@ public class Server {
                         .addLast(new ServerHandler());
             }
         });
-
-        serverConfig = PropertiesBoostrap.loadServerConfig();
 
         batchExportUrl();
 
@@ -141,15 +151,6 @@ public class Server {
         // 获取 workerGroup 的线程数
 //        int threadCount = workerGroup.executorCount();
 //        System.out.println("Worker group thread count: " + threadCount);
-    }
-
-    public void initCache() {
-        String serverSerialize = serverConfig.getServerSerialize();
-        switch (serverSerialize) {
-            case FAST_JSON_SERIALIZE_STRATEGY -> SERVER_SERIALIZER = new FastJsonSerializerFactory();
-            case KRYO_SERIALIZE_STRATEGY -> SERVER_SERIALIZER = new KryoSerializeFactory();
-            default -> throw new RuntimeException("Invalid server serialize");
-        }
     }
 
     /**
@@ -198,11 +199,12 @@ public class Server {
     }
 
     public static void main(String[] args) throws InterruptedException {
-        // 配置服务器地址和端口
-
-
         // 创建并配置服务器实例
         Server server = new Server();
+
+        // serializer
+        // todo 确定顺序
+        server.initCache();
 
         // 注册并暴露服务实现类
         server.exportService(new HelloServiceImpl());
@@ -211,9 +213,7 @@ public class Server {
         // 启动服务器
         server.startApplication();
 
-        // serializer
-        // todo 确定顺序
-        server.initCache();
+        log.debug("Server config: {}", server.getServerConfig());
 
 //        log.info("Server started successfully on {}:{}", serverConfig.getHost(), serverConfig.getServerPort());
     }

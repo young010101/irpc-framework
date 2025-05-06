@@ -9,16 +9,12 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+import static org.idea.irpc.framework.common.UserBootstrap.buildUser;
+
 /**
  * @author cyang
  */
 public class SerializeCompareTest {
-    private static User buildUser() {
-        return new User("100", "cyan", "111@111.com", "11111",
-                "12", "134971947", "1", "深圳南山区",
-                "一些备注", "369733200008236423");
-    }
-
 
     private static final User USER = buildUser();
 

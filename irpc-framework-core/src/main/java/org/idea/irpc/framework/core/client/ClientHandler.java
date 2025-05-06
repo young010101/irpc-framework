@@ -22,6 +22,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
             // 客户端与服务端通过 RpcProtocol 对象作为基本协议进行交互
             RpcProtocol protocol = (RpcProtocol) msg;
             byte[] content = protocol.getContent();
+            // 反序列化响应
             RpcInvocation invocation = CLIENT_SERIALIZE_FACTORY.deserialize(content, RpcInvocation.class);
             // 通过发送的的uuid获取响应对象
             if (!RESP_MAP.containsKey(invocation.getUuid())) {

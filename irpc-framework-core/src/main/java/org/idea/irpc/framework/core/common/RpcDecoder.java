@@ -16,7 +16,8 @@ import java.util.List;
 @Slf4j
 public class RpcDecoder extends ByteToMessageDecoder {
     private static final int BASE_LENGTH = 2 + 4;
-    private static final int MAX_FRAME_LENGTH = 1000; // 最大帧长度限制
+    /// 最大帧长度限制
+    private static final int MAX_FRAME_LENGTH = 1000;
 
     /**
      * 将字节流解码为RpcProtocol对象
@@ -44,19 +45,21 @@ public class RpcDecoder extends ByteToMessageDecoder {
         }
 
         if (in.readableBytes() >= BASE_LENGTH) {
-            int beginReader = in.readerIndex();
+//            in.readerIndex();
             in.markReaderIndex();
             
             // 验证魔数
             if (in.readShort() != RpcConstants.MAGIC_NUMBER) {
-                log.info("invalid magic number, skip it and close ctx");
+                log.error("invalid magic number, skip it and close ctx");
                 ctx.close();
                 return;
             }
             
             // 读取内容长度
             int contentLength = in.readInt();
+            // 如果收到的包不完整, 也就是发生了半包
             if (in.readableBytes() < contentLength) {
+                // 重置标记位置, 等接收到完整的包再读取
                 in.resetReaderIndex();
                 return;
             }

@@ -39,7 +39,7 @@ public class JDKClientInvocationHandler implements InvocationHandler {
 
         long beginTime = System.currentTimeMillis();
         while (System.currentTimeMillis() - beginTime < 3000) {
-            // todo: 在哪里被替换的呢?
+            // 在哪里被替换的呢?
             Object obj = RESP_MAP.get(rpcInvocation.getUuid());
             if (obj instanceof RpcInvocation) {
                 return ((RpcInvocation) obj).getResponse();

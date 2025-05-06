@@ -6,11 +6,11 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import lombok.extern.slf4j.Slf4j;
 import org.idea.irpc.framework.core.common.RpcInvocation;
 import org.idea.irpc.framework.core.common.RpcProtocol;
-import org.idea.irpc.framework.core.common.cache.CommonServerCache;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+import static org.idea.irpc.framework.core.common.cache.CommonServerCache.PROVIDED_CLASSES_MAP;
 import static org.idea.irpc.framework.core.common.cache.CommonServerCache.SERVER_SERIALIZER;
 
 /**
@@ -38,20 +38,26 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws InvocationTargetException, IllegalAccessException {
         RpcProtocol rpcProtocol = (RpcProtocol) msg;
         byte[] content = rpcProtocol.getContent();
-        String json = new String(content, 0, rpcProtocol.getContentLength());
-        log.info("Received request: {}", json);
-        
-//        RpcInvocation rpcInvocation = JSON.parseObject(json, RpcInvocation.class);
+        if (content == null || content.length == 0) {
+            log.error("server receive empty content");
+            return;
+        } else if (content.length != ((RpcProtocol) msg).getContentLength()) {
+            log.error("server receive content length error");
+            return;
+        }
+        // deserialize, 获得接口名字
         RpcInvocation rpcInvocation = SERVER_SERIALIZER.deserialize(content, RpcInvocation.class);
-        log.info("Target service: {}", rpcInvocation.getTargetServiceName());
-        
-        Object targetService = CommonServerCache.PROVIDED_CLASSES_MAP.get(rpcInvocation.getTargetServiceName());
-        log.info("Target service class: {}", targetService.getClass().getName());
+        log.info("Target service interface: {}", rpcInvocation.getTargetServiceName());
+
+        // 获得接口对应的bean
+        Object targetService = PROVIDED_CLASSES_MAP.get(rpcInvocation.getTargetServiceName());
+        log.info("Target service class impl: {}", targetService.getClass().getName());
         
         Class<?> clazz = targetService.getClass();
         Method[] methods = clazz.getDeclaredMethods();
         Object result = null;
-        
+
+        // 匹配方法. 只匹配一个
         for (Method method : methods) {
             if (method.getName().equals(rpcInvocation.getTargetMethod())) {
                 if (method.getReturnType().equals(Void.TYPE)) {
@@ -64,9 +70,9 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
             }
         }
         
-        log.info("Method execution result: {}", JSON.toJSONString(result));
+        log.info("Method execution result: {}", result);
         rpcInvocation.setResponse(result);
-        RpcProtocol respRpcProtocol = new RpcProtocol(JSON.toJSONString(rpcInvocation).getBytes());
+        RpcProtocol respRpcProtocol = new RpcProtocol(SERVER_SERIALIZER.serialize(rpcInvocation));
         ctx.writeAndFlush(respRpcProtocol);
     }
 
