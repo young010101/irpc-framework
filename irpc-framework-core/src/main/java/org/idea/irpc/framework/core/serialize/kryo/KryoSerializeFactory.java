@@ -31,10 +31,10 @@ public class KryoSerializeFactory implements SerializerFactory {
     /**
      * kryo 需要 no args constructor
      *
-     * @param bytes
-     * @param clazz
-     * @param <T>
-     * @return
+     * @param bytes rpcInvocation 的 content byte数组
+     * @param clazz 强转为实际返回对象
+     * @param <T> 实际返回对象的类型
+     * @return 调用远程方法返回的结果
      */
     @Override
     public <T> T deserialize(byte[] bytes, Class<T> clazz) {
