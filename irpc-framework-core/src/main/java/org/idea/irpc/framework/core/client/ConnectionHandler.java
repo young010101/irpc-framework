@@ -5,14 +5,14 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
 import org.idea.irpc.framework.core.common.ChannelFutureWrapper;
 import org.idea.irpc.framework.core.common.utils.CommonUtils;
+import org.idea.irpc.framework.core.route.Selector;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
-import static org.idea.irpc.framework.core.common.cache.CommonClientCache.CONNECT_MAP;
-import static org.idea.irpc.framework.core.common.cache.CommonClientCache.SERVER_ADDRESS;
+import static org.idea.irpc.framework.core.common.cache.CommonClientCache.*;
 
 /**
  * 职责： 当注册中心的节点新增或者移除或者权重变化的时候，这个类主要负责对内存中的url做变更
@@ -45,13 +45,14 @@ public class ConnectionHandler {
 
         //===========解析ip和port 并得到channelFuture
         //格式错误类型的信息
-        if(!providerIp.contains(":")){
+        if (!providerIp.contains(":")) {
             return;
         }
         String[] providerAddress = providerIp.split(":");
         String ip = providerAddress[0];
         int port = Integer.parseInt(providerAddress[1]);
         //到底这个channelFuture里面是什么
+        //ChannelFuture 是 Netty 中的一个重要异步操作结果对象，表示一次异步的连接操作、写操作、关闭操作等。
         ChannelFuture channelFuture = bootstrap.connect(ip, port).sync();
 
 //        URL_MAP
@@ -72,12 +73,13 @@ public class ConnectionHandler {
 
     /**
      * 构建ChannelFuture
+     *
      * @param ip
      * @param port
      * @return
      * @throws InterruptedException
      */
-    public static ChannelFuture createChannelFuture(String ip,Integer port) throws InterruptedException {
+    public static ChannelFuture createChannelFuture(String ip, Integer port) throws InterruptedException {
         return bootstrap.connect(ip, port).sync();
     }
 
@@ -112,8 +114,9 @@ public class ConnectionHandler {
         if (CommonUtils.isEmptyList(channelFutureWrappers)) {
             throw new RuntimeException("no provider exist for " + providerServiceName);
         }
-        ChannelFuture channelFuture = channelFutureWrappers.get(new Random().nextInt(channelFutureWrappers.size())).getChannelFuture();
-        return channelFuture;
+//        ChannelFuture channelFuture = channelFutureWrappers.get(new Random().nextInt(channelFutureWrappers.size())).getChannelFuture();
+        return I_ROUTE.select(new Selector(providerServiceName, channelFutureWrappers)).getChannelFuture();
+//        return channelFuture;
     }
 
 

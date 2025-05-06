@@ -60,10 +60,11 @@ public abstract class AbstractRegister implements RegistryService {
     public abstract void doBeforeSubscribe(URL url);
 
     /**
+     * 获得服务提供者的地址
      * 留给子类扩展
      *
-     * @param serviceName
-     * @return
+     * @param serviceName e.g. DataService
+     * @return address with format "ip:port".
      */
     public abstract List<String> getProviderAddresses(String serviceName);
 
