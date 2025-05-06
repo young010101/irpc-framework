@@ -34,6 +34,7 @@ import org.idea.irpc.framework.interfaces.HelloService;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
 
 import static org.idea.irpc.framework.core.common.cache.CommonClientCache.*;
 import static org.idea.irpc.framework.core.common.cache.CommonClientCache.SEND_QUEUE;
@@ -169,8 +170,9 @@ public class Client {
      * <p>用于与服务器通信的 ChannelFuture 从本地缓存 CONNECT_MAP获取，代表已建立的连接
      */
     public void startSendThread() {
-        // todo 用线程池
-        new Thread(new AsyncSentJob()).start();
+        // LinkedBlockingQueue无界队列, 即队列容量为 Integer.MAX_VALUE;
+        // 可能导致OOM
+        Executors.newSingleThreadExecutor().execute(new AsyncSentJob());
     }
 
     /**
