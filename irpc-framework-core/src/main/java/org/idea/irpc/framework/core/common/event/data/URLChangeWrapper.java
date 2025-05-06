@@ -2,6 +2,7 @@ package org.idea.irpc.framework.core.common.event.data;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
@@ -15,6 +16,7 @@ import java.util.List;
  * @author cyang
  */
 @Data
+@NoArgsConstructor
 @AllArgsConstructor
 public class URLChangeWrapper {
 

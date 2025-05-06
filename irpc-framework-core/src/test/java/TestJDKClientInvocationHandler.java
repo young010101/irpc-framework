@@ -4,7 +4,7 @@ import org.idea.irpc.framework.core.common.cache.CommonClientCache;
 import org.idea.irpc.framework.core.proxy.ProxyFactory;
 import org.idea.irpc.framework.core.proxy.jdk.JDKProxyFactory;
 import org.idea.irpc.framework.interfaces.HelloService;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @Slf4j
 public class TestJDKClientInvocationHandler {

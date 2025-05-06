@@ -7,6 +7,7 @@ import org.idea.irpc.framework.core.proxy.jdk.JDKClientInvocationHandler;
 import org.idea.irpc.framework.core.registy.URL;
 import org.idea.irpc.framework.core.route.IRoute;
 import org.idea.irpc.framework.core.route.RandomRouteImpl;
+import org.idea.irpc.framework.core.serialize.SerializerFactory;
 
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -84,4 +85,6 @@ public class CommonClientCache {
     public static final Set<String> SERVER_ADDRESS = new HashSet<>();
 
     public static IRoute I_ROUTE = new RandomRouteImpl();
+
+    public static SerializerFactory CLIENT_SERIALIZE_FACTORY;
 }

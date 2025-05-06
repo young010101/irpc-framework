@@ -41,7 +41,7 @@ public class RotateRouteImpl implements IRoute {
         wrappers.add(new ChannelFutureWrapper(null, 2181, 1000));
         wrappers.add(new ChannelFutureWrapper(null, 2181, 900));
         RotateRouteImpl route = new RotateRouteImpl();
-        Selector selector = new Selector(DataService.class.getName());
+        Selector selector = new Selector(DataService.class.getName(), wrappers);
         String serviceName = selector.getProviderServiceName();
         CONNECT_MAP.put(serviceName,wrappers);
 

@@ -2,6 +2,7 @@ package org.idea.irpc.framework.core.common.cache;
 
 import org.idea.irpc.framework.core.registy.RegistryService;
 import org.idea.irpc.framework.core.registy.URL;
+import org.idea.irpc.framework.core.serialize.SerializerFactory;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,4 +35,10 @@ public class CommonServerCache {
      * e.g. zookeeper
      */
     public static RegistryService REGISTRY_SERVICE;
+
+
+    // ==========serialize, lesson5===============
+
+
+    public static SerializerFactory SERVER_SERIALIZER;
 }

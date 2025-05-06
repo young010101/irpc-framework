@@ -7,7 +7,7 @@ import org.idea.irpc.framework.core.registy.URL;
 import org.idea.irpc.framework.core.registy.zookeeper.CuratorZookeeperClient;
 import org.idea.irpc.framework.core.registy.zookeeper.ZookeeperRegister;
 import org.idea.irpc.framework.interfaces.DataService;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
@@ -51,11 +51,12 @@ public class TestZookeeperRegister {
     @Test
     public void testCurator() throws Exception {
         RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000, 3);
-        CuratorFramework curatorFramework = CuratorFrameworkFactory.newClient("localhost:2181", retryPolicy);
-        curatorFramework.start();
-        byte[] res = curatorFramework.getData().forPath("/irpc");
-        String o = new String(res);
-        System.out.println(o);
+        try (CuratorFramework curatorFramework = CuratorFrameworkFactory.newClient("localhost:2181", retryPolicy)){
+            curatorFramework.start();
+            byte[] res = curatorFramework.getData().forPath("/irpc");
+            String o = new String(res);
+            System.out.println(o);
+        }
     }
 
     @Test

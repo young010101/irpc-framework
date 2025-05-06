@@ -12,14 +12,18 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.idea.irpc.framework.core.common.RpcDecoder;
 import org.idea.irpc.framework.core.common.RpcEncoder;
+import org.idea.irpc.framework.core.common.config.PropertiesBoostrap;
+import org.idea.irpc.framework.core.common.config.ServerConfig;
+import org.idea.irpc.framework.core.common.utils.CommonUtils;
 import org.idea.irpc.framework.core.registy.URL;
 import org.idea.irpc.framework.core.registy.zookeeper.ZookeeperRegister;
+import org.idea.irpc.framework.core.serialize.fastjson.FastJsonSerializerFactory;
+import org.idea.irpc.framework.core.serialize.kryo.KryoSerializeFactory;
 import org.idea.irpc.framework.impl.DataServerImpl;
 import org.idea.irpc.framework.impl.HelloServiceImpl;
 
 import static org.idea.irpc.framework.core.common.cache.CommonServerCache.*;
-import static org.idea.irpc.framework.core.common.constants.RpcConstants.HOST;
-import static org.idea.irpc.framework.core.common.constants.RpcConstants.PORT;
+import static org.idea.irpc.framework.core.common.constants.RpcConstants.*;
 
 /**
  * RPC 框架的服务器端启动类。
@@ -41,26 +45,23 @@ import static org.idea.irpc.framework.core.common.constants.RpcConstants.PORT;
 public class Server {
     private ServerConfig serverConfig;
 
-    public static void main(String[] args) throws InterruptedException {
-        // 配置服务器地址和端口
-        ServerConfig serverConfig = new ServerConfig();
-        serverConfig.setHost("127.0.0.1");
-        serverConfig.setPort(9999);
-        serverConfig.setApplicationName("cyan-irpc");
-        serverConfig.setRegisterAddr("127.0.0.1:2181");
+    public void exportService(Object serviceBean) {
+        registerService(serviceBean);
 
-        // 创建并配置服务器实例
-        Server server = new Server();
-        server.setServerConfig(serverConfig);
+        URL url = new URL();
+        url.setServiceName(serviceBean.getClass().getInterfaces()[0].getName());
+        url.setApplicationName(serverConfig.getApplicationName());
+        // 这里要获取真实的ip, 但是本地电脑的ip只能在局域网中使用, 校园网甚至更少
+        url.addParameter(HOST, CommonUtils.getIpAddress());
+        url.addParameter(PORT, String.valueOf(serverConfig.getServerPort()));
 
-        // 注册并暴露服务实现类
-        server.exportService(new HelloServiceImpl());
-        server.exportService(new DataServerImpl());
+        // todo: 配置应该移到配置文件
+        if (REGISTRY_SERVICE == null) {
+            REGISTRY_SERVICE = new ZookeeperRegister(serverConfig.getRegisterAddr());
+        }
 
-        // 启动服务器
-        server.startApplication();
-
-        log.info("Server started successfully on {}:{}", serverConfig.getHost(), serverConfig.getPort());
+        // todo 可以去掉么?
+        PROVIDER_URL_SET.add(url);
     }
 
     private void startApplication() throws InterruptedException {
@@ -123,14 +124,16 @@ public class Server {
             }
         });
 
+        serverConfig = PropertiesBoostrap.loadServerConfig();
+
         batchExportUrl();
 
-        ChannelFuture future = bootstrap.bind(serverConfig.getPort()).sync();
+        ChannelFuture future = bootstrap.bind(serverConfig.getServerPort()).sync();
         future.addListener(f -> {
             if (f.isSuccess()) {
-                log.info("Server bound to port {} successfully", serverConfig.getPort());
+                log.info("Server bound to port {} successfully", serverConfig.getServerPort());
             } else {
-                log.error("Failed to bind port {}", serverConfig.getPort(), f.cause());
+                log.error("Failed to bind port {}", serverConfig.getServerPort(), f.cause());
             }
         });
 
@@ -138,6 +141,15 @@ public class Server {
         // 获取 workerGroup 的线程数
 //        int threadCount = workerGroup.executorCount();
 //        System.out.println("Worker group thread count: " + threadCount);
+    }
+
+    public void initCache() {
+        String serverSerialize = serverConfig.getServerSerialize();
+        switch (serverSerialize) {
+            case FAST_JSON_SERIALIZE_STRATEGY -> SERVER_SERIALIZER = new FastJsonSerializerFactory();
+            case KRYO_SERIALIZE_STRATEGY -> SERVER_SERIALIZER = new KryoSerializeFactory();
+            default -> throw new RuntimeException("Invalid server serialize");
+        }
     }
 
     /**
@@ -165,26 +177,7 @@ public class Server {
         PROVIDED_CLASSES_MAP.put(serviceClass.getName(), serviceBean);
     }
 
-    private void exportService(Object serviceBean) {
-        registerService(serviceBean);
-
-        URL url = new URL();
-        url.setServiceName(serviceBean.getClass().getInterfaces()[0].getName());
-        url.setApplicationName(serverConfig.getApplicationName());
-        // 这里要获取真实的ip, 但是本地电脑的ip只能在局域网中使用, 校园网甚至更少
-        url.addParameter(HOST, serverConfig.getHost());
-        url.addParameter(PORT, String.valueOf(serverConfig.getPort()));
-
-        // todo: 配置应该移到配置文件
-        if (REGISTRY_SERVICE == null) {
-            REGISTRY_SERVICE = new ZookeeperRegister(serverConfig.getRegisterAddr());
-        }
-
-        // todo 可以去掉么?
-        PROVIDER_URL_SET.add(url);
-    }
-
-    public void batchExportUrl() {
+    private void batchExportUrl() {
         // todo
         // 更好的写法（推荐）：
         // 如果必须等数据，可以考虑用更优雅的方法，比如：
@@ -202,5 +195,26 @@ public class Server {
             // 会再次保存到本地缓存 PROVIDER_URL_SET
             REGISTRY_SERVICE.register(url);
         }
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+        // 配置服务器地址和端口
+
+
+        // 创建并配置服务器实例
+        Server server = new Server();
+
+        // 注册并暴露服务实现类
+        server.exportService(new HelloServiceImpl());
+        server.exportService(new DataServerImpl());
+
+        // 启动服务器
+        server.startApplication();
+
+        // serializer
+        // todo 确定顺序
+        server.initCache();
+
+//        log.info("Server started successfully on {}:{}", serverConfig.getHost(), serverConfig.getServerPort());
     }
 }

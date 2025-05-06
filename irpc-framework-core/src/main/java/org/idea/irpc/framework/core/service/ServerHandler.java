@@ -11,6 +11,8 @@ import org.idea.irpc.framework.core.common.cache.CommonServerCache;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+import static org.idea.irpc.framework.core.common.cache.CommonServerCache.SERVER_SERIALIZER;
+
 /**
  * RPC服务端处理器
  * <p>
@@ -35,10 +37,12 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws InvocationTargetException, IllegalAccessException {
         RpcProtocol rpcProtocol = (RpcProtocol) msg;
-        String json = new String(rpcProtocol.getContent(), 0, rpcProtocol.getContentLength());
+        byte[] content = rpcProtocol.getContent();
+        String json = new String(content, 0, rpcProtocol.getContentLength());
         log.info("Received request: {}", json);
         
-        RpcInvocation rpcInvocation = JSON.parseObject(json, RpcInvocation.class);
+//        RpcInvocation rpcInvocation = JSON.parseObject(json, RpcInvocation.class);
+        RpcInvocation rpcInvocation = SERVER_SERIALIZER.deserialize(content, RpcInvocation.class);
         log.info("Target service: {}", rpcInvocation.getTargetServiceName());
         
         Object targetService = CommonServerCache.PROVIDED_CLASSES_MAP.get(rpcInvocation.getTargetServiceName());

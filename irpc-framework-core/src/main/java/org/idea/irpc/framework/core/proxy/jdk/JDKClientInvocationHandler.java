@@ -30,7 +30,8 @@ public class JDKClientInvocationHandler implements InvocationHandler {
     @Override
     public Object invoke(Object ignored, Method method, Object[] args) throws Throwable {
         // 使用不同的UUID对每次请求做区分
-        RpcInvocation rpcInvocation = new RpcInvocation(clazz.getName(),  method.getName(), args, UUID.randomUUID().toString());
+        RpcInvocation rpcInvocation =
+                new RpcInvocation(clazz.getName(), method.getName(), args, UUID.randomUUID().toString());
         RESP_MAP.put(rpcInvocation.getUuid(), OBJECT);
         // 将请求放进发送队列, 有异步线程拉去发送到服务器.
         // 详见 Client AsyncSendJob 方法

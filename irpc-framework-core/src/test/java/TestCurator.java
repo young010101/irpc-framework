@@ -3,7 +3,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.zookeeper.CreateMode;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @Slf4j
 public class TestCurator {

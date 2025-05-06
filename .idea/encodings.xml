@@ -5,6 +5,8 @@
     <file url="file://$PROJECT_DIR$/irpc-framework-core/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/irpc-framework-interface/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/irpc-framework-interface/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/irpc-framework-jmh/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/irpc-framework-jmh/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/irpc-learn/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/resources" charset="UTF-8" />

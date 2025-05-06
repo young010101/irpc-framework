@@ -1,6 +1,5 @@
 package org.idea.irpc.framework.core.client;
 
-import com.alibaba.fastjson.JSON;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -9,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.idea.irpc.framework.core.common.RpcInvocation;
 import org.idea.irpc.framework.core.common.RpcProtocol;
 
+import static org.idea.irpc.framework.core.common.cache.CommonClientCache.CLIENT_SERIALIZE_FACTORY;
 import static org.idea.irpc.framework.core.common.cache.CommonClientCache.RESP_MAP;
 
 /**
@@ -21,15 +21,15 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
         try {
             // 客户端与服务端通过 RpcProtocol 对象作为基本协议进行交互
             RpcProtocol protocol = (RpcProtocol) msg;
-            String json = new String(protocol.getContent(), 0, protocol.getContentLength());
-            RpcInvocation o = JSON.parseObject(json, RpcInvocation.class);
+            byte[] content = protocol.getContent();
+            RpcInvocation invocation = CLIENT_SERIALIZE_FACTORY.deserialize(content, RpcInvocation.class);
             // 通过发送的的uuid获取响应对象
-            if (!RESP_MAP.containsKey(o.getUuid())) {
+            if (!RESP_MAP.containsKey(invocation.getUuid())) {
                 throw new IllegalArgumentException("Server response is error");
             }
             // uuid在代理类中被放入
-            RESP_MAP.put(o.getUuid(), o);
-            log.info("client receive msg:{}", o);
+            RESP_MAP.put(invocation.getUuid(), invocation);
+            log.info("client receive msg:{}", invocation);
         } finally {
             // cursor 提到可以使用 SimpleChannelInboundHandler, 避免手动释放
             ReferenceCountUtil.release(msg);
