@@ -9,8 +9,7 @@ import org.idea.irpc.framework.core.common.RpcProtocol;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-import static org.idea.irpc.framework.core.common.cache.CommonServerCache.PROVIDED_CLASSES_MAP;
-import static org.idea.irpc.framework.core.common.cache.CommonServerCache.SERVER_SERIALIZER;
+import static org.idea.irpc.framework.core.common.cache.CommonServerCache.*;
 
 /**
  * RPC服务端处理器
@@ -36,17 +35,12 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws InvocationTargetException, IllegalAccessException {
         RpcProtocol rpcProtocol = (RpcProtocol) msg;
-        byte[] content = rpcProtocol.getContent();
-        if (content == null || content.length == 0) {
-            log.error("server receive empty content");
-            return;
-        } else if (content.length != ((RpcProtocol) msg).getContentLength()) {
-            log.error("server receive content length error");
-            return;
-        }
         // deserialize, 获得接口名字
-        RpcInvocation rpcInvocation = SERVER_SERIALIZER.deserialize(content, RpcInvocation.class);
+        RpcInvocation rpcInvocation = SERVER_SERIALIZER.deserialize(rpcProtocol.getContent(), RpcInvocation.class);
         log.info("Target service interface: {}", rpcInvocation.getTargetServiceName());
+
+        // 执行过滤链
+        SERVER_FILTER_CHAIN.doFilter(rpcInvocation);
 
         // 获得接口对应的bean
         Object targetService = PROVIDED_CLASSES_MAP.get(rpcInvocation.getTargetServiceName());

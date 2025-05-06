@@ -3,6 +3,8 @@ package org.idea.irpc.framework.core.common.cache;
 import org.idea.irpc.framework.core.common.ChannelFuturePollingRef;
 import org.idea.irpc.framework.core.common.ChannelFutureWrapper;
 import org.idea.irpc.framework.core.common.RpcInvocation;
+import org.idea.irpc.framework.core.common.config.ClientConfig;
+import org.idea.irpc.framework.core.filter.client.ClientFilterChain;
 import org.idea.irpc.framework.core.proxy.jdk.JDKClientInvocationHandler;
 import org.idea.irpc.framework.core.registy.URL;
 import org.idea.irpc.framework.core.route.IRoute;
@@ -66,8 +68,12 @@ public class CommonClientCache {
 
 
     /**
-     * 随机请求的Map, 具体看...
-     * 路由层用到
+     * 随机请求的Map
+     *
+     * <li>负载均衡策略计算完成后存入</li>
+     * <li>获取具体服务连接</li>
+     * 使用内置array 而不是 List 是因为维度永远是100. 但是List 更好统一
+     * @apiNote 路由层用到
      */
     public static final Map<String, ChannelFutureWrapper[]> SERVICE_ROUTE_MAP = new ConcurrentHashMap<>();
 
@@ -86,5 +92,16 @@ public class CommonClientCache {
 
     public static IRoute I_ROUTE = new RandomRouteImpl();
 
+
+    // ===========serialize, lesson5================
+
+
     public static SerializerFactory CLIENT_SERIALIZE_FACTORY;
+
+
+    // ==============filter, lesson6=============
+
+
+    public static ClientFilterChain CLIENT_FILTER_CHAIN;
+    public static ClientConfig CLIENT_CONFIG;
 }

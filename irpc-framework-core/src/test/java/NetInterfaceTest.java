@@ -8,7 +8,7 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Enumeration;
 
-import static org.idea.irpc.framework.core.common.utils.CommonUtils.getIpAddress;
+import static org.idea.irpc.framework.core.common.utils.CommonUtils.getIp;
 
 @Slf4j
 public class NetInterfaceTest {
@@ -38,6 +38,6 @@ public class NetInterfaceTest {
 
     @Test
     void test() {
-        System.out.println(getIpAddress());
+        System.out.println(getIp());
     }
 }

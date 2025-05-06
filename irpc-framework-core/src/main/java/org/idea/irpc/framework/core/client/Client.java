@@ -18,6 +18,10 @@ import org.idea.irpc.framework.core.common.config.ClientConfig;
 import org.idea.irpc.framework.core.common.config.PropertiesBoostrap;
 import org.idea.irpc.framework.core.common.event.IRpcListenerLoader;
 import org.idea.irpc.framework.core.common.utils.CommonUtils;
+import org.idea.irpc.framework.core.filter.client.ClientFilterChain;
+import org.idea.irpc.framework.core.filter.client.ClientLogFilterImpl;
+import org.idea.irpc.framework.core.filter.client.DirectInvokeFilterImpl;
+import org.idea.irpc.framework.core.filter.client.GroupFilterImpl;
 import org.idea.irpc.framework.core.proxy.ProxyFactory;
 import org.idea.irpc.framework.core.proxy.jdk.JDKProxyFactory;
 import org.idea.irpc.framework.core.registy.URL;
@@ -82,6 +86,8 @@ public class Client {
 
         // 3. 从配置文件导入配置
         clientConfig = PropertiesBoostrap.loadClientConfig();
+        // todo
+        CLIENT_CONFIG = clientConfig;
 
         // 4. 根据配置返回代理工厂包装类
         // 5月4日: 这一步几乎和前面没有关系,也不依赖于前面, 放在一起属实是很牵强的感觉
@@ -99,7 +105,7 @@ public class Client {
     // 2. 初始化路由, 序列化方法
     /// - route. e.g. 1. random, 2. rotate
     /// - serializer. e.g. 1. fastjson, 2. kryo, 3. todo, protobuf
-    public void initCacheConfig() {
+    public void initConfig() {
         String routeStrategy = clientConfig.getRouteStrategy();
         if (RANDOM_ROUTE_STRATEGY.equalsIgnoreCase(routeStrategy)) {
             I_ROUTE = new RandomRouteImpl();
@@ -118,6 +124,12 @@ public class Client {
             default:
                 throw new RuntimeException("no match serializer for " + serializer);
         }
+
+        ClientFilterChain clientFilterChain = new ClientFilterChain();
+        clientFilterChain.addFilter(new DirectInvokeFilterImpl());
+        clientFilterChain.addFilter(new GroupFilterImpl());
+        clientFilterChain.addFilter(new ClientLogFilterImpl());
+        CLIENT_FILTER_CHAIN =  clientFilterChain;
     }
 
     /**
@@ -130,7 +142,7 @@ public class Client {
             registryService = new ZookeeperRegister(clientConfig.getRegisterAddress());
         }
 
-        HashMap<String, String> params = new HashMap<>(Map.of(HOST, CommonUtils.getIpAddress()));
+        HashMap<String, String> params = new HashMap<>(Map.of(HOST, CommonUtils.getIp()));
         URL url = new URL(clientConfig.getApplicationName(), serviceBean.getName(), params);
 
         registryService.subscribe(url);
@@ -142,6 +154,10 @@ public class Client {
 
         for (URL providerUrl : SUBSCRIBE_SERVICE_LIST) {
             List<String> providerAddresses = registryService.getProviderAddresses(providerUrl.getServiceName());
+            if (providerAddresses == null || providerAddresses.isEmpty()) {
+                log.error("can not find provider address for {}", providerUrl.getServiceName());
+                return;
+            }
             providerAddresses.forEach(addr -> {
                 try {
                     ConnectionHandler.connect(providerUrl.getServiceName(), addr);
@@ -213,7 +229,7 @@ public class Client {
         RpcReference rpcReference = client.initClientApplication();
 
         // 3. 路由方法, 序列化方法初始化
-        client.initCacheConfig();
+        client.initConfig();
 
         // 订阅服务, 读取注册中心的服务地址
         client.doSubscribe(HelloService.class);
@@ -225,11 +241,24 @@ public class Client {
         //
         client.startSendThread();
 
-        HelloService helloService = rpcReference.getProxy(HelloService.class);
-        DataService dataService = rpcReference.getProxy(DataService.class);
+        RpcReferenceWrapper<HelloService> helloW = new RpcReferenceWrapper<>();
+        helloW.setAimClass(HelloService.class);
+        helloW.setGroup(DEV_STRING);
+        helloW.setServiceToken(DEV_TOKEN);
+
+        HelloService helloService = rpcReference.getProxy(helloW);
+
+        RpcReferenceWrapper<DataService> dataW = new RpcReferenceWrapper<>(
+                DataService.class,
+                Map.of(GROUP_STRING, DEV_STRING, SERVICE_TOKEN, "token-b"));
+
+        DataService dataService = rpcReference.getProxy(dataW);
+
+//        HelloService helloService = rpcReference.getProxy(HelloService.class);
+//        DataService dataService = rpcReference.getProxy(DataService.class);
         for (int i = 0; i < 10; i++) {
             log.info("helloService: {}", helloService.sayHello("client"));
-            log.info("dataService: {}", dataService.hello("client"));
+//            log.info("dataService: {}", dataService.hello("client"));
         }
     }
 }

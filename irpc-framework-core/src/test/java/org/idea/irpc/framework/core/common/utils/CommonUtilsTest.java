@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 class CommonUtilsTest {
 
     @Test
-    void getIpAddress() {
-        CommonUtils.getIpAddress();
+    void getIp() {
+        CommonUtils.getIp();
     }
 }

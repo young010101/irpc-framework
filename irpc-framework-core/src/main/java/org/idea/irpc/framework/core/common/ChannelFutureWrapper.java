@@ -14,6 +14,8 @@ public class ChannelFutureWrapper {
     private final int port;
     private ChannelFuture channelFuture;
 
+    private String group;
+
     /**
      * 规定为100的整数倍, 为什么?
      */

@@ -15,6 +15,9 @@ import org.idea.irpc.framework.core.common.RpcEncoder;
 import org.idea.irpc.framework.core.common.config.PropertiesBoostrap;
 import org.idea.irpc.framework.core.common.config.ServerConfig;
 import org.idea.irpc.framework.core.common.utils.CommonUtils;
+import org.idea.irpc.framework.core.filter.server.ServerFilterChain;
+import org.idea.irpc.framework.core.filter.server.ServerLogFilterImpl;
+import org.idea.irpc.framework.core.filter.server.ServiceTokenFilterImpl;
 import org.idea.irpc.framework.core.registy.URL;
 import org.idea.irpc.framework.core.registy.zookeeper.ZookeeperRegister;
 import org.idea.irpc.framework.core.serialize.fastjson.FastJsonSerializerFactory;
@@ -55,17 +58,27 @@ public class Server {
             case KRYO_SERIALIZE_STRATEGY -> SERVER_SERIALIZER = new KryoSerializeFactory();
             default -> throw new RuntimeException("Invalid server serialize");
         }
+
+        ServerFilterChain serverFilterChain = new ServerFilterChain();
+        serverFilterChain.addFilter(new ServiceTokenFilterImpl());
+        serverFilterChain.addFilter(new ServerLogFilterImpl());
+        SERVER_FILTER_CHAIN = serverFilterChain;
     }
 
-    public void exportService(Object serviceBean) {
+    public void exportService(ServiceBeanWrapper serviceBeanWrapper) {
+        Object serviceBean = serviceBeanWrapper.getServiceBean();
+
         registerService(serviceBean);
 
         URL url = new URL();
-        url.setServiceName(serviceBean.getClass().getInterfaces()[0].getName());
+        String serviceName = serviceBean.getClass().getInterfaces()[0].getName();
+        url.setServiceName(serviceName);
         url.setApplicationName(serverConfig.getApplicationName());
         // 这里要获取真实的ip, 但是本地电脑的ip只能在局域网中使用, 校园网甚至更少
-        url.addParameter(HOST, CommonUtils.getIpAddress());
+        url.addParameter(HOST, CommonUtils.getIp());
         url.addParameter(PORT, String.valueOf(serverConfig.getServerPort()));
+        url.addParameter(GROUP_STRING, serviceBeanWrapper.getGroup());
+        url.addParameter(LIMIT_STRING, serviceBeanWrapper.getLimit().toString());
 
         // todo: 配置应该移到配置文件
         if (REGISTRY_SERVICE == null) {
@@ -74,6 +87,11 @@ public class Server {
 
         // todo 可以去掉么?
         PROVIDER_URL_SET.add(url);
+
+        // token 鉴权时使用
+        if (CommonUtils.isNotEmpty(serviceBeanWrapper.getToken())) {
+            SERVICE_BEAN_WRAPPER_MAP.put(serviceName,  serviceBeanWrapper);
+        }
     }
 
     private void startApplication() throws InterruptedException {
@@ -154,9 +172,8 @@ public class Server {
 
     /**
      * 注册服务实现类到缓存映射中。
-     * <p>
-     * 后续需要暴露服务到zookeeper等注册中心中.
-     * </p>
+     *
+     * <p>后续需要暴露服务到zookeeper等注册中心中.
      *
      * @param serviceBean 要注册的服务实现类实例
      * @throws RuntimeException 如果服务类没有实现接口或实现了多个接口
@@ -177,6 +194,7 @@ public class Server {
         PROVIDED_CLASSES_MAP.put(serviceClass.getName(), serviceBean);
     }
 
+    /// Q: 这里的性能瓶颈是?
     private void batchExportUrl() {
         // todo
         // 更好的写法（推荐）：
@@ -206,8 +224,8 @@ public class Server {
         server.initCache();
 
         // 注册并暴露服务实现类
-        server.exportService(new HelloServiceImpl());
-        server.exportService(new DataServerImpl());
+        server.exportService(new ServiceBeanWrapper(new HelloServiceImpl(), DEV_STRING, DEV_TOKEN));
+        server.exportService(new ServiceBeanWrapper(new DataServerImpl(), DEV_STRING));
 
         // 启动服务器
         server.startApplication();

@@ -8,7 +8,7 @@ public class RpcConstants {
     public static final short MAGIC_NUMBER = 0xCA;
 
     public static final String JDK_PROXY = "jdk";
-    // todo javasist
+    // todo javassist
 
     // register
     /// used by `URL`
@@ -26,4 +26,17 @@ public class RpcConstants {
     // serializer
     public static final String FAST_JSON_SERIALIZE_STRATEGY = "fastJson";
     public static final String KRYO_SERIALIZE_STRATEGY = "kryo";
+
+    // filter
+    public static final String C_APP_NAME = "c_app_name";
+    public static final String SERVICE_TOKEN = "service_token";
+    public static final String DEFAULT_GROUP = "default_group";
+    public static final String DEFAULT_TOKEN = "";
+    public static final Integer DEFAULT_LIMIT = -1;
+    public static final String GROUP_STRING = "group";
+    public static final String LIMIT_STRING = "limit";
+
+    // dev
+    public static final String DEV_STRING = "dev";
+    public static final String DEV_TOKEN = "token-a";
 }

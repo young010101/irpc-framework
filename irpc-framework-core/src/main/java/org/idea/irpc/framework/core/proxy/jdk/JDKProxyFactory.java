@@ -1,5 +1,6 @@
 package org.idea.irpc.framework.core.proxy.jdk;
 
+import org.idea.irpc.framework.core.client.RpcReferenceWrapper;
 import org.idea.irpc.framework.core.proxy.ProxyFactory;
 
 import java.lang.reflect.Proxy;
@@ -17,14 +18,15 @@ public class JDKProxyFactory implements ProxyFactory {
      */
     @SuppressWarnings("unchecked")
     @Override
-    public <T> T getProxy(Class<T> clazz) {
-        if (!clazz.isInterface()) {
-            throw new IllegalArgumentException("JDK dynamic proxy only supports interfaces: " + clazz.getName());
+    public <T> T getProxy(RpcReferenceWrapper<T> clazz) {
+        Class<T> clazz2 = clazz.getAimClass();
+        if (!clazz2.isInterface()) {
+            throw new IllegalArgumentException("JDK dynamic proxy only supports interfaces: " + clazz2.getName());
         }
 
         return (T) Proxy.newProxyInstance(
-                clazz.getClassLoader(),
-                new Class[]{clazz},
+                clazz2.getClassLoader(),
+                new Class[]{clazz2},
                 new JDKClientInvocationHandler(clazz)
         );
 

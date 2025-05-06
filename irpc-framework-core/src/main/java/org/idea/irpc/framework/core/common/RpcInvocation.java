@@ -5,6 +5,7 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.io.Serial;
+import java.util.Map;
 
 /**
  * RPC 调用信息封装类
@@ -50,6 +51,8 @@ public class RpcInvocation implements Serializable {
      * </p>
      */
     private Object response;
+
+    private Map<String, Object> attachments;
 
     public RpcInvocation(String targetServiceName, String targetMethod, Object[] args, String uuid) {
         this.targetServiceName = targetServiceName;

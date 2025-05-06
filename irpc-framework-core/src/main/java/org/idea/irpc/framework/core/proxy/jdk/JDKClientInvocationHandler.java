@@ -1,5 +1,6 @@
 package org.idea.irpc.framework.core.proxy.jdk;
 
+import org.idea.irpc.framework.core.client.RpcReferenceWrapper;
 import org.idea.irpc.framework.core.common.RpcInvocation;
 
 import java.lang.reflect.InvocationHandler;
@@ -12,27 +13,38 @@ import static org.idea.irpc.framework.core.common.cache.CommonClientCache.SEND_Q
 
 /**
  * JDK动态代理
- * <p>
- * 弄明白OBJECT何时被替换
- * </p>
+ *
+ * <p>FAQ:
+ * <li>Q: OBJECT何时被替换 </li>
  *
  * @author cyang
  */
 public class JDKClientInvocationHandler implements InvocationHandler {
     /// 这个静态常量OBJECT只是在 `RESP_MAP` 占位符. 如果从服务器获得响应, 会被替换成RpcInvocation类型,
-    private static final Object OBJECT = new Object();
-    private final Class<?> clazz;
+    private static final Object IGNORED = new Object();
+    private final RpcReferenceWrapper<?> wrapper;
 
-    public JDKClientInvocationHandler(Class<?> clazz) {
-        this.clazz = clazz;
+    public JDKClientInvocationHandler(RpcReferenceWrapper<?> wrapper) {
+        this.wrapper = wrapper;
     }
 
+    /// 从服务提供者获取真正的响应并返回
     @Override
     public Object invoke(Object ignored, Method method, Object[] args) throws Throwable {
+        Class<?> clazz2 = wrapper.getAimClass();
+        // 1. 初始化调用内容
+        // - 类的权限定名, 方法签名(方法名和方法参数)
+        // - UUID, 用于区分不同调用
         // 使用不同的UUID对每次请求做区分
         RpcInvocation rpcInvocation =
-                new RpcInvocation(clazz.getName(), method.getName(), args, UUID.randomUUID().toString());
-        RESP_MAP.put(rpcInvocation.getUuid(), OBJECT);
+                new RpcInvocation(clazz2.getName(), method.getName(), args, UUID.randomUUID().toString());
+        rpcInvocation.setAttachments(wrapper.getAttachments());
+
+        // do
+        // ...
+
+        // 2. 发送并获取响应
+        RESP_MAP.put(rpcInvocation.getUuid(), IGNORED);
         // 将请求放进发送队列, 有异步线程拉去发送到服务器.
         // 详见 Client AsyncSendJob 方法
         SEND_QUEUE.add(rpcInvocation);

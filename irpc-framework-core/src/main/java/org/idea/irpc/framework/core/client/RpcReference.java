@@ -20,7 +20,7 @@ public class RpcReference {
      * @param <T> 一般是某种 Server 类, e.g. DataService
      * @throws Exception proxyFactory 抛出的异常, 目前还不知道是什么异常
      */
-    public <T> T getProxy(Class<T> clazz) throws Exception {
+    public <T> T getProxy(RpcReferenceWrapper<T> clazz) throws Exception {
         return proxyFactory.getProxy(clazz);
     }
 }

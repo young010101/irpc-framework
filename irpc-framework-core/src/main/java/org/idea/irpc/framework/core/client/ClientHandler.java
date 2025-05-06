@@ -25,6 +25,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
             // 反序列化响应
             RpcInvocation invocation = CLIENT_SERIALIZE_FACTORY.deserialize(content, RpcInvocation.class);
             // 通过发送的的uuid获取响应对象
+            // 代理对象会放入RESP_MAP, 所以为空的时候, 不是server导致的, 而是代理对象出现异常
             if (!RESP_MAP.containsKey(invocation.getUuid())) {
                 throw new IllegalArgumentException("Server response is error");
             }
