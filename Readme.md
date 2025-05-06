@@ -163,6 +163,10 @@ class URL
 > netty中，处理传输数据的多个handler也是责任链模式
 > Tomcat的ApplicationFilterChain
 
+## Service provider interface
+
+将用户自定义的代码加入RPC框架. 通过配置读取
+
 ## 面试技巧
 
 1. 引导面试官到擅长的领域
