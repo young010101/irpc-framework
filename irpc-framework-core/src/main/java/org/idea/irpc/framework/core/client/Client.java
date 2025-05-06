@@ -60,52 +60,16 @@ public class Client {
     // 监听服务变化
     private IRpcListenerLoader rpcListenerLoader;
 
-    // 1. 初始化
-    /**
-     *
-     * @return 代理工厂的包装类
-     */
-    public RpcReference initClientApplication() {
+    // 1. 加载配置, 初始化路由, 序列化方法
+    /// - route. e.g. 1. random, 2. rotate
+    /// - serializer. e.g. 1. fastjson, 2. kryo, 3. todo, protobuf
+    public void initConfig() {
 
-        // 1. netty
-        EventLoopGroup group = new NioEventLoopGroup();
-        bootstrap.group(group).channel(NioSocketChannel.class);
-        bootstrap.handler(new ChannelInitializer<SocketChannel>() {
-            @Override
-            protected void initChannel(SocketChannel ch) {
-                ch.pipeline()
-                        .addLast(new RpcEncoder())
-                        .addLast(new RpcDecoder())
-                        .addLast(new ClientHandler());
-            }
-        });
-
-        // 2. 监听服务中心的变化. init 方法注册各种事件的监听器
-        rpcListenerLoader = new IRpcListenerLoader();
-        rpcListenerLoader.init();
-
-        // 3. 从配置文件导入配置
+        // 1. 从配置文件导入配置
         clientConfig = PropertiesBoostrap.loadClientConfig();
         // todo
         CLIENT_CONFIG = clientConfig;
 
-        // 4. 根据配置返回代理工厂包装类
-        // 5月4日: 这一步几乎和前面没有关系,也不依赖于前面, 放在一起属实是很牵强的感觉
-        // todo: 实现javassist
-        ProxyFactory proxyFactory;
-        if (JDK_PROXY.equals(clientConfig.getProxyType())) {
-            proxyFactory = new JDKProxyFactory();
-        } else {
-            throw new RuntimeException("unknown proxy type");
-        }
-
-        return new RpcReference(proxyFactory);
-    }
-
-    // 2. 初始化路由, 序列化方法
-    /// - route. e.g. 1. random, 2. rotate
-    /// - serializer. e.g. 1. fastjson, 2. kryo, 3. todo, protobuf
-    public void initConfig() {
         String routeStrategy = clientConfig.getRouteStrategy();
         if (RANDOM_ROUTE_STRATEGY.equalsIgnoreCase(routeStrategy)) {
             I_ROUTE = new RandomRouteImpl();
@@ -130,6 +94,43 @@ public class Client {
         clientFilterChain.addFilter(new GroupFilterImpl());
         clientFilterChain.addFilter(new ClientLogFilterImpl());
         CLIENT_FILTER_CHAIN =  clientFilterChain;
+    }
+
+    // 2. 初始化
+    /**
+     *
+     * @return 代理工厂的包装类
+     */
+    public RpcReference initClientApplication() {
+
+        // 1. netty
+        EventLoopGroup group = new NioEventLoopGroup();
+        bootstrap.group(group).channel(NioSocketChannel.class);
+        bootstrap.handler(new ChannelInitializer<SocketChannel>() {
+            @Override
+            protected void initChannel(SocketChannel ch) {
+                ch.pipeline()
+                        .addLast(new RpcEncoder())
+                        .addLast(new RpcDecoder())
+                        .addLast(new ClientHandler());
+            }
+        });
+
+        // 2. 监听服务中心的变化. init 方法注册各种事件的监听器
+        rpcListenerLoader = new IRpcListenerLoader();
+        rpcListenerLoader.init();
+
+        // 4. 根据配置返回代理工厂包装类
+        // 5月4日: 这一步几乎和前面没有关系,也不依赖于前面, 放在一起属实是很牵强的感觉
+        // todo: 实现javassist
+        ProxyFactory proxyFactory;
+        if (JDK_PROXY.equals(clientConfig.getProxyType())) {
+            proxyFactory = new JDKProxyFactory();
+        } else {
+            throw new RuntimeException("unknown proxy type");
+        }
+
+        return new RpcReference(proxyFactory);
     }
 
     /**
@@ -225,11 +226,11 @@ public class Client {
         // 1. 创建 client 并加载配置
         Client client = new Client();
 
-        // 2. bootstrap, listener, 获得代理工厂
-        RpcReference rpcReference = client.initClientApplication();
-
-        // 3. 路由方法, 序列化方法初始化
+        // 2. 路由方法, 序列化方法初始化
         client.initConfig();
+
+        // 3. bootstrap, listener, 获得代理工厂
+        RpcReference rpcReference = client.initClientApplication();
 
         // 订阅服务, 读取注册中心的服务地址
         client.doSubscribe(HelloService.class);
