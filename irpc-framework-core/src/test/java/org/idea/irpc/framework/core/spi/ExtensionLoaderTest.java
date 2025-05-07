@@ -6,8 +6,6 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 @Slf4j
 class ExtensionLoaderTest {
 
@@ -15,6 +13,6 @@ class ExtensionLoaderTest {
     void loadExtensions() throws IOException, ClassNotFoundException {
         ExtensionLoader extensionLoader = new ExtensionLoader();
         extensionLoader.loadExtensions(SerializerFactory.class);
-        log.info(String.valueOf(extensionLoader.EXTENSION_LOADED_CLASS_CACHE.get(SerializerFactory.class.getName())));;
+        log.info(String.valueOf(extensionLoader.EXTENSION_LOADED_CLASS_CACHE.get(SerializerFactory.class.getName())));
     }
 }
