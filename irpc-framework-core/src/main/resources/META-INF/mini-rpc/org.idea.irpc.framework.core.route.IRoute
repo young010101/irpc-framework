@@ -1,0 +1,2 @@
+random=org.idea.irpc.framework.core.route.RandomRouteImpl
+rotate=org.idea.irpc.framework.core.route.RotateRouteImpl

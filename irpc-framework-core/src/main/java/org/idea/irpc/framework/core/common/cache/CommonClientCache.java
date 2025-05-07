@@ -10,6 +10,7 @@ import org.idea.irpc.framework.core.registy.URL;
 import org.idea.irpc.framework.core.route.IRoute;
 import org.idea.irpc.framework.core.route.RandomRouteImpl;
 import org.idea.irpc.framework.core.serialize.SerializerFactory;
+import org.idea.irpc.framework.core.spi.ExtensionLoader;
 
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -104,4 +105,10 @@ public class CommonClientCache {
 
     public static ClientFilterChain CLIENT_FILTER_CHAIN;
     public static ClientConfig CLIENT_CONFIG;
+
+
+    // ==============spi, lesson7===============
+
+
+    public static ExtensionLoader  EXTENSION_LOADER = new ExtensionLoader();
 }

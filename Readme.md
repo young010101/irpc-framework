@@ -70,6 +70,10 @@ Netty、Zookeeper、Fastjson、SpringBoot
 - 根据配置使用不同的序列化方式
   - client 和 server 之间是否需要告知?
 
+发起一个 dataService.sendData 方法，先经过 proxy 层包装类名，方法名，方法参数，
+经过过滤链进行二次包装，经过路由层计算真正发送的机器，
+经过序列化层转化为byte数组，再经过netty底层将其从网络通道发送到目标服务节点
+
 ### 代理层设计
 
 ```java
@@ -127,7 +131,7 @@ flowchart LR
 
 ```
 
-## 代理层实现
+## 2. 代理层实现
 
 开启客户端开启新的线程发送数据包给服务器, 解耦.
 具体流程是将对象放入BlockingQueue, 发送线程有个死循环不断take
@@ -138,7 +142,8 @@ flowchart LR
 注:
 服务提供者其实和类的权限定名有很大的关系
 
-## 注册中心的接入和实现
+## 3. 注册中心的接入和实现
+
 在`ZookeeperRegister`中, 服务更新(`UrlChangeWrapper`) 会被包装成事件(event), 通过`ListenerLoader`
 发送事件, 里面会开启线程池异步执行event.callback, event的callback会移除无用节点, 添加新节点到本地缓存, 也就是
 `CONNECT_MAP`, 其中
@@ -151,21 +156,25 @@ classDiagram
 class URL
 ```
 
-## 路由层
+## 4. 路由层
 
-## filter
+## 5. serialize
 
-服务端的责任链我是放在了ChannelInboundHandlerAdapter中，
-但是客户端的责任链并没有放在ChannelOutboundHandlerAdapter中，
-因为客户端的责任链需要在确认具体channel之前做筛选，
-而在ChannelOutboundHandlerAdapter通常是在已经确认了channel且只能对单个channel生效。
+## 6. filter
+
+> 服务端的责任链我是放在了ChannelInboundHandlerAdapter中，
+> 但是客户端的责任链并没有放在ChannelOutboundHandlerAdapter中，
+> 因为客户端的责任链需要在确认具体channel之前做筛选，
+> 而在ChannelOutboundHandlerAdapter通常是在已经确认了channel且只能对单个channel生效。
 
 > netty中，处理传输数据的多个handler也是责任链模式
 > Tomcat的ApplicationFilterChain
 
-## Service provider interface
+## 7. Service provider interface (SPI)
 
 将用户自定义的代码加入RPC框架. 通过配置读取
+
+## 8. 队列
 
 ## 面试技巧
 

@@ -18,31 +18,30 @@ import org.idea.irpc.framework.core.common.config.ClientConfig;
 import org.idea.irpc.framework.core.common.config.PropertiesBoostrap;
 import org.idea.irpc.framework.core.common.event.IRpcListenerLoader;
 import org.idea.irpc.framework.core.common.utils.CommonUtils;
+import org.idea.irpc.framework.core.filter.IClientFilter;
 import org.idea.irpc.framework.core.filter.client.ClientFilterChain;
-import org.idea.irpc.framework.core.filter.client.ClientLogFilterImpl;
-import org.idea.irpc.framework.core.filter.client.DirectInvokeFilterImpl;
-import org.idea.irpc.framework.core.filter.client.GroupFilterImpl;
 import org.idea.irpc.framework.core.proxy.ProxyFactory;
 import org.idea.irpc.framework.core.proxy.jdk.JDKProxyFactory;
 import org.idea.irpc.framework.core.registy.URL;
 import org.idea.irpc.framework.core.registy.zookeeper.AbstractRegister;
 import org.idea.irpc.framework.core.registy.zookeeper.ZookeeperRegister;
-import org.idea.irpc.framework.core.route.RandomRouteImpl;
-import org.idea.irpc.framework.core.route.RotateRouteImpl;
+import org.idea.irpc.framework.core.route.IRoute;
 import org.idea.irpc.framework.core.route.Selector;
-import org.idea.irpc.framework.core.serialize.fastjson.FastJsonSerializerFactory;
-import org.idea.irpc.framework.core.serialize.kryo.KryoSerializeFactory;
+import org.idea.irpc.framework.core.serialize.SerializerFactory;
 import org.idea.irpc.framework.interfaces.DataService;
 import org.idea.irpc.framework.interfaces.HelloService;
 
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 
 import static org.idea.irpc.framework.core.common.cache.CommonClientCache.*;
-import static org.idea.irpc.framework.core.common.cache.CommonClientCache.SEND_QUEUE;
 import static org.idea.irpc.framework.core.common.constants.RpcConstants.*;
+import static org.idea.irpc.framework.core.spi.ExtensionLoader.EXTENSION_LOADED_CLASS_CACHE;
 
 /**
  * @author cyang
@@ -63,36 +62,47 @@ public class Client {
     // 1. 加载配置, 初始化路由, 序列化方法
     /// - route. e.g. 1. random, 2. rotate
     /// - serializer. e.g. 1. fastjson, 2. kryo, 3. todo, protobuf
-    public void initConfig() {
+    public void initConfig() throws
+            IOException, ClassNotFoundException,
+            NoSuchMethodException, InvocationTargetException,
+            InstantiationException, IllegalAccessException {
 
         // 1. 从配置文件导入配置
         clientConfig = PropertiesBoostrap.loadClientConfig();
         // todo
         CLIENT_CONFIG = clientConfig;
 
+        // 2. proxy
+        // 3. register
+
+        // 4. route
+        EXTENSION_LOADER.loadExtensions(IRoute.class);
         String routeStrategy = clientConfig.getRouteStrategy();
-        if (RANDOM_ROUTE_STRATEGY.equalsIgnoreCase(routeStrategy)) {
-            I_ROUTE = new RandomRouteImpl();
-        } else if (ROTATE_ROUTE_STRATEGY.equalsIgnoreCase(routeStrategy)) {
-            I_ROUTE = new RotateRouteImpl();
+        LinkedHashMap<String, Class<?>> iRouteMap = EXTENSION_LOADED_CLASS_CACHE.get(IRoute.class.getName());
+        if (iRouteMap == null) {
+            throw new RuntimeException("no route strategy found for " + routeStrategy);
         }
+        I_ROUTE = (IRoute) iRouteMap.get(routeStrategy).getDeclaredConstructor().newInstance();
 
+        // 5. serialize
+        EXTENSION_LOADER.loadExtensions(SerializerFactory.class);
         String serializer = clientConfig.getClientSerializer();
-        switch (serializer) {
-            case FAST_JSON_SERIALIZE_STRATEGY:
-                CLIENT_SERIALIZE_FACTORY = new FastJsonSerializerFactory();
-                break;
-            case KRYO_SERIALIZE_STRATEGY:
-                CLIENT_SERIALIZE_FACTORY = new KryoSerializeFactory();
-                break;
-            default:
-                throw new RuntimeException("no match serializer for " + serializer);
+        LinkedHashMap<String, Class<?>> serializerMap =
+                EXTENSION_LOADED_CLASS_CACHE.get(SerializerFactory.class.getName());
+        if (serializerMap == null) {
+            throw new RuntimeException("no serializer found for " + serializer);
         }
+        CLIENT_SERIALIZE_FACTORY = (SerializerFactory) serializerMap.get(serializer)
+                .getDeclaredConstructor().newInstance();
 
+        // 6. filter
+        EXTENSION_LOADER.loadExtensions(IClientFilter.class);
+        LinkedHashMap<String, Class<?>> clientFilterClassMap =
+                EXTENSION_LOADED_CLASS_CACHE.get(IClientFilter.class.getName());
         ClientFilterChain clientFilterChain = new ClientFilterChain();
-        clientFilterChain.addFilter(new DirectInvokeFilterImpl());
-        clientFilterChain.addFilter(new GroupFilterImpl());
-        clientFilterChain.addFilter(new ClientLogFilterImpl());
+        for (Class<?> clazz : clientFilterClassMap.values()) {
+            clientFilterChain.addFilter((IClientFilter) clazz.getDeclaredConstructor().newInstance());
+        }
         CLIENT_FILTER_CHAIN =  clientFilterChain;
     }
 
@@ -123,6 +133,7 @@ public class Client {
         // 4. 根据配置返回代理工厂包装类
         // 5月4日: 这一步几乎和前面没有关系,也不依赖于前面, 放在一起属实是很牵强的感觉
         // todo: 实现javassist
+        // todo: spi
         ProxyFactory proxyFactory;
         if (JDK_PROXY.equals(clientConfig.getProxyType())) {
             proxyFactory = new JDKProxyFactory();
@@ -140,6 +151,7 @@ public class Client {
      */
     public void doSubscribe(Class<?> serviceBean) {
         if (registryService == null) {
+            // todo 使用spi机制去加载
             registryService = new ZookeeperRegister(clientConfig.getRegisterAddress());
         }
 

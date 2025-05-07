@@ -1,4 +1,5 @@
 import lombok.extern.slf4j.Slf4j;
+import org.idea.irpc.framework.core.client.RpcReferenceWrapper;
 import org.idea.irpc.framework.core.common.RpcInvocation;
 import org.idea.irpc.framework.core.common.cache.CommonClientCache;
 import org.idea.irpc.framework.core.proxy.ProxyFactory;
@@ -6,12 +7,15 @@ import org.idea.irpc.framework.core.proxy.jdk.JDKProxyFactory;
 import org.idea.irpc.framework.interfaces.HelloService;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
+
 @Slf4j
 public class TestJDKClientInvocationHandler {
     @Test
     public void test() throws Exception {
         ProxyFactory proxyFactory = new JDKProxyFactory();
-        HelloService helloService = proxyFactory.getProxy(HelloService.class);
+        RpcReferenceWrapper<HelloService> helloW = new RpcReferenceWrapper<>(HelloService.class, Map.of());
+        HelloService helloService = proxyFactory.getProxy(helloW);
 
         // 启动一个异步线程模拟服务器处理
         new Thread(() -> {
